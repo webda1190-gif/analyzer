@@ -126,6 +126,7 @@ canvas.minichart{width:100%;height:80px;display:block}
   <button class="nav-btn active" onclick="showPage('signals')">📊 Signale</button>
   <button class="nav-btn" onclick="showPage('news')">📰 News</button>
   <button class="nav-btn" onclick="showPage('journal')">📒 Journal</button>
+  <button class="nav-btn" onclick="showPage('backtest')">🔬 Backtest</button>
 </div>
 
 <!-- SIGNALS PAGE -->
@@ -145,7 +146,35 @@ canvas.minichart{width:100%;height:80px;display:block}
     <div class="sum-meta"><span>5 Coins · Long Only</span><span id="lastUpdate">–</span></div>
   </div>
   <div class="cards" id="cards"></div>
-  <div class="footer-note">Kein Finanzrat · Immer SL setzen · Binance API</div>
+  <div class="footer-note">Kein Finanzrat · Immer SL setzen · CryptoCompare API</div>
+</div>
+
+<!-- BACKTEST PAGE -->
+<div class="page" id="page-backtest">
+  <div class="hrow" style="margin-bottom:14px">
+    <div>
+      <div class="hsub">Strategie</div>
+      <div class="htitle">BACKTEST</div>
+      <div class="hdesc">Historische Signal-Simulation</div>
+    </div>
+    <button onclick="renderBacktest()" style="background:var(--blue);border:none;border-radius:10px;padding:9px 14px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(59,91,219,0.3)">▶ START</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+    <span style="font-size:11px;font-weight:700;color:var(--txt2)">Coin:</span>
+    <select id="bt-coin-sel" style="background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--txt);font-size:12px;font-family:inherit;outline:none;flex:1" onchange="renderBacktest()">
+      <option value="BTCUSDC">Bitcoin (BTC)</option>
+      <option value="ETHUSDC">Ethereum (ETH)</option>
+      <option value="SOLUSDC">Solana (SOL)</option>
+      <option value="BNBUSDC">BNB</option>
+      <option value="LINKUSDC">Chainlink (LINK)</option>
+    </select>
+  </div>
+  <div style="background:var(--blue-bg);border:1.5px solid rgba(59,91,219,0.2);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--blue)">
+    ℹ️ Simuliert die aktuelle Strategie auf den letzten ~100 Stunden-Kerzen. Entry bei KAUFEN-Signal, SL/TP identisch zur Live-App.
+  </div>
+  <div id="bt-content" style="color:var(--txt3);font-size:12px;padding:30px;text-align:center">
+    Erst Daten laden (↺ UPDATE), dann ▶ START klicken.
+  </div>
 </div>
 
 <!-- NEWS PAGE -->
@@ -815,7 +844,7 @@ function renderCards(){
       <div style="font-size:22px;margin-bottom:8px">⚠️</div>
       <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">API nicht erreichbar</div>
       <div style="font-size:11px;color:var(--txt2);line-height:1.6;margin-bottom:12px">
-        Binance-API wird durch deinen Browser oder dein Netzwerk blockiert (CORS).<br>
+        CryptoCompare API konnte nicht erreicht werden.<br>
         Versuche es erneut oder öffne die App in einem anderen Browser.
       </div>
       <button onclick="fetchAll()" style="background:var(--red);border:none;border-radius:8px;padding:9px 18px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">↺ Erneut versuchen</button>
@@ -927,20 +956,23 @@ function renderCards(){
     }
 
     const pStr=price>1000?fmt(price,0):fmt(price,2);
+    // Alle 8 Indikatoren in einem Grid – immer rot oder grün
+    const rsiOk=rsi&&rsi<50,rsiBad=rsi&&rsi>65;
+    const emaOk=emaCross?.above&&!emaCross?.bullCross,emaBull=emaCross?.bullCross,emaBad=emaCross&&!emaCross.above;
+    const bollPos=boll&&price?((price-boll.lower)/(boll.upper-boll.lower)):0.5;
+    const bollOk=bollPos<0.35,bollBad=bollPos>0.75;
+    const srOk=sr?.distToSupport!=null&&sr.distToSupport<2,srBad=sr?.distToResistance!=null&&sr.distToResistance<2;
     const stats=[
-      {l:"RSI",v:rsi?fmt(rsi,0):"–",ok:rsi&&rsi<45,bad:rsi&&rsi>65},
-      // EMA shown in stats2
-      {l:"MACD",v:macd?(macd.histogram>0?"▲ Bull":"▼ Bear"):"–",ok:macd?.histogram>0,bad:macd?.histogram<0},
-      {l:"MA50",v:p50?`${p50>0?"+":""}${fmt(p50,1)}%`:"–",ok:p50>0,bad:p50<0},
-      {l:"ATR",v:atr?`$${fmt(atr,0)}`:"–",ok:false,bad:false},
+      {l:"RSI",    v:rsi?fmt(rsi,0)+"  "+(rsi<30?'🔥':rsi<45?'↓':''):"–",          ok:rsiOk,   bad:rsiBad},
+      {l:"EMA9/21",v:emaCross?(emaBull?'🔥Cross':emaCross.above?'▲ Bull':'▼ Bear'):'–', ok:emaOk||emaBull, bad:emaBad},
+      {l:"MACD",   v:macd?(macd.histogram>0?"▲ Bull":"▼ Bear"):"–",                  ok:macd?.histogram>0, bad:macd?.histogram<0},
+      {l:"MA50",   v:p50!=null?`${p50>0?"+":""}${fmt(p50,1)}%`:"–",                 ok:p50!=null&&p50>0, bad:p50!=null&&p50<0},
+      {l:"BOLL",   v:boll?(bollPos<0.15?'Unteres':bollPos>0.85?'Oberes':'Mitte'):'–',ok:bollOk, bad:bollBad},
+      {l:"S/R",    v:sr?(sr.distToSupport!=null?'-'+fmt(sr.distToSupport,1)+'%':'–'):'–', ok:srOk, bad:srBad},
+      {l:"4H",     v:trend4h?trend4h.label.split(' ')[0]:'–',                        ok:trend4h?.score>0, bad:trend4h?.score<0},
+      {l:"R:R",    v:rr1?'1:'+rr1:'–',                                               ok:rr1>=2, bad:rr1<1.5},
     ];
-    const stats2=[
-      {l:"EMA",v:emaCross?(emaCross.bullCross?'🔥Cross':emaCross.above?'▲':'▼'):'–',ok:emaCross?.above&&emaCross?.gap<2,bad:emaCross&&!emaCross.above},
-      {l:"4H",v:trend4h?trend4h.label.split(' ')[0]:'–',ok:trend4h?.score>0,bad:trend4h?.score<0},
-      {l:"1D",v:trend1d?trend1d.label.split(' ')[0]:'–',ok:trend1d?.score>0,bad:trend1d?.score<0},
-      {l:"R:R",v:rr1?'1:'+rr1:'–',ok:rr1>=2,bad:rr1<1.5},
-      {l:"RSI4H",v:rsi4h?fmt(rsi4h,0):'–',ok:rsi4h&&rsi4h<45,bad:rsi4h&&rsi4h>65},
-    ];
+    const stats2=[];
 
     const reasonsHTML=reasons.map(r=>`
       <div class="reason-item ${r.b===true?'reason-bull':r.b===false?'reason-bear':'reason-neutral'}">
@@ -949,11 +981,11 @@ function renderCards(){
 
     const resHTML=sr?.resistances.length?sr.resistances.map(r=>`
       <div class="sr-level sr-resist"><span>$${fmt(r,0)}</span><span class="sr-pct">+${fmt(((r-price)/price)*100,1)}%</span></div>
-    `).join(''):'<div style="color:rgba(255,255,255,0.2);font-size:11px">Keiner gefunden</div>';
+    `).join(''):'<div style="color:var(--txt3);font-size:11px;padding:4px">Keiner gefunden</div>';
 
     const supHTML=sr?.supports.length?[...sr.supports].reverse().map(s=>`
       <div class="sr-level sr-support"><span>$${fmt(s,0)}</span><span class="sr-pct">-${fmt(((price-s)/price)*100,1)}%</span></div>
-    `).join(''):'<div style="color:rgba(255,255,255,0.2);font-size:11px">Keiner gefunden</div>';
+    `).join(''):'<div style="color:var(--txt3);font-size:11px;padding:4px">Keiner gefunden</div>';
 
     const fiboHTML=fibo?fibo.levels.filter(f=>{
       const dist=Math.abs(f.price-price)/price*100;
@@ -961,14 +993,14 @@ function renderCards(){
     }).map(f=>{
       const dist=((f.price-price)/price)*100;
       const isNear=Math.abs(dist)<1.5;
-      return`<div class="sr-level sr-fibo" style="${isNear?'border-color:rgba(100,150,255,0.6);background:rgba(100,150,255,0.15)':''}">
+      return`<div class="sr-level sr-fibo" style="${isNear?'border-color:rgba(59,91,219,0.5);background:var(--blue-bg)':''}">
         <span>${f.label}</span>
         <span class="sr-pct">$${fmt(f.price,0)} (${dist>0?"+":""}${fmt(dist,1)}%)</span>
       </div>`;
     }).join(''):'';
 
     const bollHTML=boll?`
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;margin-top:10px">
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-top:10px;border:1px solid var(--border)">
         <div class="sr-label" style="margin-bottom:6px">BOLLINGER BANDS</div>
         <div class="trade-row"><span class="trade-label">Oberes Band</span><span style="color:var(--red);font-weight:700">$${fmt(boll.upper,0)}</span></div>
         <div class="trade-row"><span class="trade-label">Mitte (MA20)</span><span style="color:var(--yellow);font-weight:700">$${fmt(boll.middle,0)}</span></div>
@@ -993,13 +1025,20 @@ function renderCards(){
           <div>
             <div class="signal-badge" style="background:${color}22;border:1.5px solid ${color}88;color:${color}">${emoji} ${signal}</div>
             <div class="signal-conf">${conf} · ${score>0?'+':''}${score.toFixed(1)}pts</div>
-          <div style="font-size:8px;color:rgba(255,255,255,0.25);margin-top:1px">RSI:${rsi?rsi.toFixed(0):'–'} MACD:${macd?(macd.histogram>0?'▲':'▼'):'–'}</div>
+          <div style="font-size:8px;color:var(--txt3);margin-top:1px">RSI:${rsi?rsi.toFixed(0):'–'} MACD:${macd?(macd.histogram>0?'▲':'▼'):'–'}</div>
           </div>
         </div>
         <div class="sbar-bg"><div class="sbar" style="width:${pct}%"></div></div>
-        <div class="qstats">
-          ${stats.map(s=>`<div class="qstat" style="border:1.5px solid ${s.ok?'rgba(0,168,107,0.4)':s.bad?'rgba(229,57,53,0.4)':'var(--border)'};background:${s.ok?'var(--green-bg)':s.bad?'var(--red-bg)':'var(--bg3)'}">
-            <div class="ql">${s.l}</div><div class="qv" style="color:${s.ok?'var(--green)':s.bad?'var(--red)':'var(--yellow)'}">${s.v}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px">
+          ${stats.slice(0,4).map(s=>`<div class="qstat" style="border:1.5px solid ${s.ok?'rgba(0,168,107,0.5)':s.bad?'rgba(229,57,53,0.5)':'var(--border)'};background:${s.ok?'var(--green-bg)':s.bad?'var(--red-bg)':'var(--bg3)'}">
+            <div class="ql" style="color:${s.ok?'var(--green)':s.bad?'var(--red)':'var(--txt3)'}">${s.l}</div>
+            <div class="qv" style="color:${s.ok?'var(--green)':s.bad?'var(--red)':'var(--txt2);font-size:10px'}">${s.v}</div>
+          </div>`).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px">
+          ${stats.slice(4,8).map(s=>`<div class="qstat" style="border:1.5px solid ${s.ok?'rgba(0,168,107,0.5)':s.bad?'rgba(229,57,53,0.5)':'var(--border)'};background:${s.ok?'var(--green-bg)':s.bad?'var(--red-bg)':'var(--bg3)'}">
+            <div class="ql" style="color:${s.ok?'var(--green)':s.bad?'var(--red)':'var(--txt3)'}">${s.l}</div>
+            <div class="qv" style="color:${s.ok?'var(--green)':s.bad?'var(--red)':'var(--txt2);font-size:10px'}">${s.v}</div>
           </div>`).join('')}
         </div>
 
@@ -1017,7 +1056,7 @@ function renderCards(){
         </div>
         <div class="tab-content ${tab==='signal'?'active':''}">
           ${reasonsHTML}
-          ${candle?`<div style="margin-top:6px;padding:5px 9px;background:rgba(255,255,255,0.03);border-radius:7px;color:rgba(255,255,255,0.5);font-size:11px">Kerze: <strong style="color:#fff">${candle.name}</strong></div>`:''}
+          ${candle?`<div style="margin-top:6px;padding:5px 9px;background:var(--bg3);border-radius:7px;color:var(--txt2);font-size:11px">Kerze: <strong style="color:var(--txt)">${candle.name}</strong></div>`:''}
           ${atr?`<div class="atr-badge">ATR: $${fmt(atr,0)} · Volatilität ${atr/price*100>1.5?'hoch':'normal'}</div>`:''}
         </div>
         <div class="tab-content ${tab==='sr'?'active':''}">
@@ -1034,16 +1073,49 @@ function renderCards(){
         <div class="tab-content ${tab==='trade'?'active':''}">
           <div class="trade-plan-box">
             ${optEntry?buildEntryHint(optEntry,optEntryRR,rr1,optEntryNote):''}
-            <div class="trade-row"><span class="trade-label">Entry (jetzt)</span><span style="color:var(--txt);font-weight:700">$${pStr}</span></div>
-            <div class="trade-row"><span class="trade-label">Stop-Loss (${slMethod}) -${fmt(slPct,1)}%</span><span style="color:var(--red);font-weight:700">$${fmt(sl,0)}</span></div>
-            <div class="trade-row"><span class="trade-label">Ziel 1 – R:R 1:2.5</span><span style="color:var(--green);font-weight:700">$${fmt(tp1,0)} (+${fmt((tp1-price)/price*100,1)}%)</span></div>
-            <div class="trade-row"><span class="trade-label">Ziel 2 – R:R 1:4</span><span style="color:#0891b2;font-weight:700">$${fmt(tp2,0)} (+${fmt((tp2-price)/price*100,1)}%)</span></div>
+            <div class="trade-row">
+              <span class="trade-label">🟡 Entry (jetzt)</span>
+              <span style="color:var(--txt);font-weight:700">$${pStr}</span>
+            </div>
+            <div class="trade-row" style="background:var(--red-bg);border-radius:6px;padding:6px 8px;margin-bottom:3px;border-bottom:none">
+              <span class="trade-label" style="color:var(--red);font-weight:700">🔴 Stop-Loss · ${slMethod} · -${fmt(slPct,1)}%</span>
+              <span style="color:var(--red);font-weight:900;font-size:14px">$${fmt(sl,0)}</span>
+            </div>
+            <div style="font-size:9px;color:var(--txt3);padding:2px 8px 6px;margin-bottom:4px">
+              Max. Verlust: <strong style="color:var(--red)">-$${fmt((price-sl)/price*size,0)}</strong> von $${size} · SL liegt ${fmt(slPct,1)}% unter Entry
+            </div>
+            <div class="trade-row" style="background:var(--green-bg);border-radius:6px;padding:6px 8px;margin-bottom:3px;border-bottom:none">
+              <span class="trade-label" style="color:var(--green);font-weight:700">🟢 TP1 · ${tp1Method} · R:R 1:${rr1}</span>
+              <span style="color:var(--green);font-weight:900;font-size:14px">$${fmt(tp1,0)}</span>
+            </div>
+            <div style="font-size:9px;color:var(--txt3);padding:2px 8px 6px;margin-bottom:4px">
+              +${fmt((tp1-price)/price*100,1)}% · Gewinn: <strong style="color:var(--green)">+$${fmt((tp1-price)/price*size,0)}</strong> · ${rr1<2?'⚠️ R:R knapp':'✅ Gutes R:R'}
+            </div>
+            <div class="trade-row" style="background:var(--blue-bg);border-radius:6px;padding:6px 8px;border-bottom:none">
+              <span class="trade-label" style="color:var(--blue);font-weight:700">🔵 TP2 · ${tp2Method} · R:R 1:${rr2}</span>
+              <span style="color:var(--blue);font-weight:900;font-size:14px">$${fmt(tp2,0)}</span>
+            </div>
+            <div style="font-size:9px;color:var(--txt3);padding:2px 8px 6px">
+              +${fmt((tp2-price)/price*100,1)}% · Gewinn: <strong style="color:var(--blue)">+$${fmt((tp2-price)/price*size,0)}</strong>
+            </div>
           </div>
           <div class="meta-grid">
-            <div class="meta-box"><div class="meta-box-label">SL Methode</div><div class="meta-box-value">${supSL?'Support':'ATR'}</div></div>
-            <div class="meta-box"><div class="meta-box-label">ATR Wert</div><div class="meta-box-value">${atr?`$${fmt(atr,0)}`:'–'}</div></div>
-            <div class="meta-box"><div class="meta-box-label">$1150 Max Verlust</div><div class="meta-box-value" style="color:#ff6666">-$${fmt((price-sl)/price*size,0)}</div></div>
-            <div class="meta-box"><div class="meta-box-label">Trend</div><div class="meta-box-value">${trend?.label||'–'}</div></div>
+            <div class="meta-box">
+              <div class="meta-box-label">SL Methode</div>
+              <div class="meta-box-value" style="color:${slMethod==='Support'?'var(--green)':'var(--blue)'}">${slMethod}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-box-label">ATR · Volatilität</div>
+              <div class="meta-box-value">${atr?`$${fmt(atr,0)} (${(atr/price*100).toFixed(1)}%)`:'–'}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-box-label">Nächste Resistance</div>
+              <div class="meta-box-value" style="color:var(--red)">${sr?.nearestResistance?`$${fmt(sr.nearestResistance,0)} (+${fmt(sr.distToResistance,1)}%)`:'–'}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-box-label">Nächster Support</div>
+              <div class="meta-box-value" style="color:var(--green)">${sr?.nearestSupport?`$${fmt(sr.nearestSupport,0)} (-${fmt(sr.distToSupport,1)}%)`:'–'}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1067,106 +1139,79 @@ function toggleCard(sym){expandedCards[sym]=!expandedCards[sym];if(!activeTabs[s
 function switchTab(sym,tab,e){e.stopPropagation();activeTabs[sym]=tab;renderCards();}
 
 // ═══════════════════════════════════════
-// FETCH
+// FETCH – CryptoCompare (echte CORS-freie API)
 // ═══════════════════════════════════════
-// CoinGecko IDs für unsere Coins
-const COINGECKO_IDS={
-  'BTCUSDC':'bitcoin',
-  'BNBUSDC':'binancecoin',
-  'LINKUSDC':'chainlink',
-  'SOLUSDC':'solana',
-  'ETHUSDC':'ethereum',
+const CC_SYM={
+  'BTCUSDC':'BTC','BNBUSDC':'BNB','LINKUSDC':'LINK','SOLUSDC':'SOL','ETHUSDC':'ETH'
 };
+const CC_BASE='https://min-api.cryptocompare.com/data';
 
-async function fetchWithTimeout(url, ms=10000){
+async function fetchWithTimeout(url,ms=12000){
   const ctrl=new AbortController();
   const to=setTimeout(()=>ctrl.abort(),ms);
-  try{
-    const r=await fetch(url,{signal:ctrl.signal});
-    clearTimeout(to);
-    return r;
-  }catch(e){clearTimeout(to);throw e;}
+  try{const r=await fetch(url,{signal:ctrl.signal});clearTimeout(to);return r;}
+  catch(e){clearTimeout(to);throw e;}
 }
 
 async function fetchCoin(coin){
-  const cgId=COINGECKO_IDS[coin.symbol];
-  if(!cgId){console.warn('Kein CoinGecko ID für',coin.symbol);return;}
-  
+  const sym=CC_SYM[coin.symbol];
+  if(!sym)return;
   try{
-    // 1) Aktueller Preis + 24h-Change
-    const mktUrl=`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true`;
-    // 2) Stündliche OHLC der letzten ~5 Tage (CoinGecko gibt 1h OHLC für 2 Tage zurück = 48 Kerzen)
-    //    /coins/{id}/ohlc?vs_currency=usd&days=2 → 1h Kerzen
-    const ohlcUrl=`https://api.coingecko.com/api/v3/coins/${cgId}/ohlc?vs_currency=usd&days=2`;
-    // 3) Tägliche OHLC für MA50/200 + 1D Trend (90 Tage)
-    const ohlcDUrl=`https://api.coingecko.com/api/v3/coins/${cgId}/ohlc?vs_currency=usd&days=90`;
+    const priceUrl=`${CC_BASE}/pricemultifull?fsyms=${sym}&tsyms=USD`;
+    const h1Url=`${CC_BASE}/v2/histohour?fsym=${sym}&tsym=USD&limit=100`;
+    const d1Url=`${CC_BASE}/v2/histoday?fsym=${sym}&tsym=USD&limit=200`;
 
-    const [mktR, ohlcR, ohlcDR] = await Promise.all([
-      fetchWithTimeout(mktUrl),
-      fetchWithTimeout(ohlcUrl),
-      fetchWithTimeout(ohlcDUrl),
+    const [pR,h1R,d1R]=await Promise.all([
+      fetchWithTimeout(priceUrl),
+      fetchWithTimeout(h1Url),
+      fetchWithTimeout(d1Url),
     ]);
 
-    if(!mktR.ok) throw new Error('Markt HTTP '+mktR.status);
-    const mkt=await mktR.json();
-    const coinMkt=mkt[cgId];
-    if(!coinMkt||!coinMkt.usd) throw new Error('Keine Preisdaten');
+    if(!pR.ok)throw new Error('Price '+pR.status);
+    const pd=await pR.json();
+    const raw=pd.RAW?.[sym]?.USD;
+    if(!raw)throw new Error('Keine Preisdaten für '+sym);
 
-    const price=coinMkt.usd;
-    const change24h=coinMkt.usd_24h_change||0;
+    const price=raw.PRICE;
+    const change24h=raw.CHANGEPCT24HOUR||0;
 
-    // OHLC: [timestamp, open, high, low, close]
-    let O=[],H=[],L=[],C=[];
-    if(ohlcR.ok){
-      const ohlc=await ohlcR.json();
-      if(Array.isArray(ohlc)&&ohlc.length>5){
-        O=ohlc.map(k=>k[1]);
-        H=ohlc.map(k=>k[2]);
-        L=ohlc.map(k=>k[3]);
-        C=ohlc.map(k=>k[4]);
-      }
+    let O=[],H=[],L=[],C=[],V=[];
+    if(h1R.ok){
+      const h1d=await h1R.json();
+      const bars=(h1d.Data?.Data||[]).filter(b=>b.close>0);
+      O=bars.map(b=>b.open);H=bars.map(b=>b.high);
+      L=bars.map(b=>b.low);C=bars.map(b=>b.close);
+      V=bars.map(b=>b.volumeto);
     }
-    // Falls 1H-OHLC zu kurz → synthetisch aus Preis aufbauen (Fallback)
-    if(C.length<20){
-      console.warn(coin.short,'1H OHLC zu kurz, nutze Fallback');
-      C=[price];O=[price];H=[price];L=[price];
-    }
+    if(C.length<10){C=[price];O=[price];H=[price*1.001];L=[price*0.999];V=[0];}
 
-    // Tägliche Kerzen für MA50/200 + 1D Trend
     let Cd=[],Hd=[],Ld=[];
-    if(ohlcDR.ok){
-      const ohlcD=await ohlcDR.json();
-      if(Array.isArray(ohlcD)&&ohlcD.length>10){
-        Cd=ohlcD.map(k=>k[4]);
-        Hd=ohlcD.map(k=>k[2]);
-        Ld=ohlcD.map(k=>k[3]);
-      }
+    if(d1R.ok){
+      const d1d=await d1R.json();
+      const dbars=(d1d.Data?.Data||[]).filter(b=>b.close>0);
+      Cd=dbars.map(b=>b.close);
+      Hd=dbars.map(b=>b.high);
+      Ld=dbars.map(b=>b.low);
     }
 
-    // Volumen: CoinGecko /simple/price gibt 24h vol zurück
-    // Wir simulieren volR aus 24h-Preisänderung als Proxy
-    const volR = Math.abs(change24h)>3 ? 1.6 : Math.abs(change24h)>1.5 ? 1.2 : 0.9;
+    const avgVol=V.length>=20?V.slice(-20).reduce((a,b)=>a+b,0)/20:1;
+    const volR=avgVol>0?(V[V.length-1]||0)/avgVol:1;
 
     const ma50=Cd.length>=50?Cd.slice(-50).reduce((a,b)=>a+b,0)/50:null;
     const ma200=Cd.length>=200?Cd.slice(-200).reduce((a,b)=>a+b,0)/200:null;
-
-    // Multi-timeframe: nutze tägliche Kerzen für 1D
     const trend1d=Cd.length>=10?detectTrend(Cd,5):null;
-    const rsi1d=Cd.length>=20?calcRSI(Cd,14):null;
 
-    // 4H simulieren aus stündlichen Kerzen (gruppiere je 4)
-    let trend4h=null,rsi4h=null,sr4h=null;
+    let trend4h=null,rsi4h=null;
     if(C.length>=16){
-      const C4=[];const H4=[];const L4=[];
+      const C4=[],H4=[],L4=[];
       for(let i=0;i+3<C.length;i+=4){
         C4.push(C[i+3]);
-        H4.push(Math.max(H[i],H[i+1]||0,H[i+2]||0,H[i+3]||0));
-        L4.push(Math.min(L[i],L[i+1]||Infinity,L[i+2]||Infinity,L[i+3]||Infinity));
+        H4.push(Math.max(...H.slice(i,i+4)));
+        L4.push(Math.min(...L.slice(i,i+4)));
       }
       if(C4.length>=8){
-        trend4h=detectTrend(C4,4);
+        trend4h=detectTrend(C4,Math.min(4,Math.floor(C4.length/2)));
         rsi4h=C4.length>=15?calcRSI(C4,14):null;
-        sr4h=calcSR(H4,L4,C4,Math.min(40,C4.length-1));
       }
     }
 
@@ -1181,18 +1226,14 @@ async function fetchCoin(coin){
       fibo:C.length>=10?calcFibo(H,L,C):null,
       candle:C.length>=2?detectCandle(O,H,L,C):null,
       trend:C.length>=20?detectTrend(C,Math.min(20,Math.floor(C.length/2))):null,
-      volR,
-      closes:C,highs:H,lows:L,
+      volR,closes:C,highs:H,lows:L,
       emaCross:C.length>=25?calcEMACross(C):null,
       rsiDiv:C.length>=34?calcRSIDivergence(C,H,L,20):null,
       trend4h,trend1d,rsi4h,
+      raw1h:{O,H,L,C,V},raw1d:{C:Cd,H:Hd,L:Ld},
     };
-  }catch(e){
-    console.warn(coin.short,'fetchCoin Fehler:',e.message);
-  }
+  }catch(e){console.warn(coin.short,'Fehler:',e.message);}
 }
-
-
 
 // ═══════════════════════════════════════
 // SELF-LEARNING ENGINE
@@ -1442,55 +1483,65 @@ function getNewsSentimentAdj(){
   return newsCache.signalAdj||0;
 }
 
-async function fetchNewsSource(url){
-  try{
-    const r=await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=8`,8000);
-    if(!r.ok)return[];
-    const d=await r.json();
-    if(!d.items)return[];
-    return d.items.map(item=>({
-      title:item.title||'',
-      url:item.link||'#',
-      source:d.feed?.title||'Feed',
-      pubDate:item.pubDate||'',
-    }));
-  }catch(e){return[];}
-}
-
 async function fetchNews(){
   const feed=document.getElementById('newsFeed');
   if(!feed)return;
-  feed.innerHTML='<div class="news-loading">⟳ Lade aktuelle News...</div>';
-
-  // Mehrere echte Quellen
-  const SOURCES=[
-    {url:'https://cointelegraph.com/rss',name:'CoinTelegraph'},
-    {url:'https://coindesk.com/arc/outboundfeeds/rss/',name:'CoinDesk'},
-    {url:'https://decrypt.co/feed',name:'Decrypt'},
-    {url:'https://www.theblock.co/rss.xml',name:'The Block'},
-  ];
+  feed.innerHTML='<div class="news-loading">⟳ Lade aktuelle Crypto-News...</div>';
 
   let allItems=[];
-  const fetchPromises=SOURCES.map(async s=>{
-    const items=await fetchNewsSource(s.url);
-    return items.map(i=>({...i,source:s.name}));
-  });
-  const results=await Promise.allSettled(fetchPromises);
-  results.forEach(r=>{if(r.status==='fulfilled')allItems.push(...r.value);});
 
-  // Sortieren nach Datum, deduplizieren
+  // Quelle 1: CryptoPanic (kostenlos, CORS-offen, echte Crypto-News)
+  try{
+    const cpUrl='https://cryptopanic.com/api/v1/posts/?auth_token=free&public=true&kind=news&currencies=BTC,ETH,SOL,BNB,LINK';
+    const r=await fetchWithTimeout(cpUrl,10000);
+    if(r.ok){
+      const d=await r.json();
+      (d.results||[]).slice(0,15).forEach(item=>{
+        allItems.push({
+          title:item.title||'',
+          url:item.url||item.source?.url||'#',
+          source:item.source?.title||'CryptoPanic',
+          pubDate:item.published_at||'',
+        });
+      });
+    }
+  }catch(e){console.warn('CryptoPanic:',e.message);}
+
+  // Quelle 2: CryptoCompare News API (kein Key nötig für public)
+  if(allItems.length<5){
+    try{
+      const ccUrl='https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=BTC,ETH,SOL,BNB,LINK,Trading&excludeCategories=Sponsored';
+      const r=await fetchWithTimeout(ccUrl,10000);
+      if(r.ok){
+        const d=await r.json();
+        (d.Data||[]).slice(0,12).forEach(item=>{
+          allItems.push({
+            title:item.title||'',
+            url:item.url||'#',
+            source:item.source_info?.name||item.source||'CC News',
+            pubDate:item.published_on?new Date(item.published_on*1000).toISOString():'',
+          });
+        });
+      }
+    }catch(e){console.warn('CC News:',e.message);}
+  }
+
+  // Dedup + sort
   allItems.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  // Dedup by similar titles
   const seen=new Set();
   allItems=allItems.filter(i=>{
-    const key=i.title.slice(0,40).toLowerCase();
+    const key=i.title.slice(0,50).toLowerCase();
     if(seen.has(key))return false;
     seen.add(key);return true;
-  });
-  allItems=allItems.slice(0,20);
+  }).slice(0,20);
 
   if(!allItems.length){
-    feed.innerHTML='<div class="news-loading">⚠️ News konnten nicht geladen werden.<br><span style="font-size:10px">Manche Browser blockieren externe Feeds.</span></div>';
+    feed.innerHTML=`<div style="background:var(--yellow-bg);border:1.5px solid rgba(245,158,11,0.3);border-radius:12px;padding:20px;text-align:center;color:var(--txt2)">
+      <div style="font-size:20px;margin-bottom:6px">📰</div>
+      <div style="font-weight:700;margin-bottom:4px">News vorübergehend nicht verfügbar</div>
+      <div style="font-size:11px;color:var(--txt3)">CryptoPanic & CryptoCompare APIs werden abgefragt.<br>Bitte erneut versuchen.</div>
+      <button onclick="fetchNews()" style="margin-top:10px;padding:8px 16px;background:var(--blue);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">↺ Neu laden</button>
+    </div>`;
     return;
   }
 
@@ -1545,49 +1596,152 @@ async function fetchNews(){
 
 
 // ═══════════════════════════════════════
-// BACKTEST / SIGNAL ANALYSIS
+// BACKTEST – Strategie auf echten historischen Daten
 // ═══════════════════════════════════════
-function showBacktest() {
-  const panel = document.getElementById('backtest-panel');
-  panel.style.display = panel.style.display==='none' ? 'block' : 'none';
-  if (panel.style.display==='none') return;
-  
-  const closed = trades.filter(t=>!t.open&&t.result!=='be');
-  const el = document.getElementById('backtest-content');
-  
-  if (closed.length < 2) {
-    el.innerHTML='<div style="color:rgba(255,255,255,0.3);font-size:11px">Mindestens 2 abgeschlossene Trades nötig</div>';
-    return;
+
+function runBacktest(coinSym){
+  const d=coinData[coinSym];
+  if(!d||!d.raw1h)return null;
+  const {O,H,L,C,V}=d.raw1h;
+  if(C.length<50)return{error:'Zu wenig Daten (min. 50 Stunden-Kerzen)'};
+
+  const SIZE=1150; // USDC pro Trade
+  const results=[];
+  // Simuliere Signal auf jedem Candle (Walk-Forward)
+  for(let i=40;i<C.length-5;i++){
+    const slice_c=C.slice(0,i),slice_h=H.slice(0,i),slice_l=L.slice(0,i),slice_o=O.slice(0,i);
+    const slice_v=V.slice(0,i);
+    const price=C[i];
+
+    // Alle Indikatoren berechnen (exakt wie live)
+    const rsi=calcRSI(slice_c,14);
+    const macd=calcMACD(slice_c);
+    const boll=calcBoll(slice_c,20,2);
+    const sr=calcSR(slice_h,slice_l,slice_c,Math.min(60,slice_c.length-1));
+    const fibo=calcFibo(slice_h,slice_l,slice_c);
+    const candle=detectCandle(slice_o,slice_h,slice_l,slice_c);
+    const trend=detectTrend(slice_c,Math.min(20,Math.floor(slice_c.length/2)));
+    const emaCross=calcEMACross(slice_c);
+    const rsiDiv=slice_c.length>=34?calcRSIDivergence(slice_c,slice_h,slice_l,20):null;
+    const avgVol=slice_v.length>=20?slice_v.slice(-20).reduce((a,b)=>a+b,0)/20:1;
+    const volR=avgVol>0?(slice_v[slice_v.length-1]||0)/avgVol:1;
+    const ma50=slice_c.length>=50?slice_c.slice(-50).reduce((a,b)=>a+b,0)/50:null;
+    const p50=ma50?((price-ma50)/ma50)*100:null;
+
+    // 4H aus 1H aggregieren
+    let trend4h=null,rsi4h=null;
+    if(slice_c.length>=16){
+      const C4=[],H4=[],L4=[];
+      for(let j=0;j+3<slice_c.length;j+=4){
+        C4.push(slice_c[j+3]);H4.push(Math.max(...slice_h.slice(j,j+4)));L4.push(Math.min(...slice_l.slice(j,j+4)));
+      }
+      if(C4.length>=8){trend4h=detectTrend(C4,Math.min(4,Math.floor(C4.length/2)));rsi4h=C4.length>=15?calcRSI(C4,14):null;}
+    }
+
+    const sig=getSignal({rsi,macd,p50,p200:null,volR,boll,price,sr,candle,trend,fibo,emaCross,rsiDiv,
+      d:{trend4h,trend1d:null,rsi4h,rsi1d:null,sr4h:null}});
+
+    if(sig.signal!=='KAUFEN'||sig.blocked)continue;
+
+    // SL/TP berechnen (identisch zur Live-App)
+    const atrMin=price*0.015;
+    const atrVal=calcATR(slice_h,slice_l,slice_c,14)||atrMin;
+    const atrSane=atrVal>atrMin?atrVal:atrMin;
+    const supSL=sr?.nearestSupport?sr.nearestSupport*0.997:null;
+    let sl;
+    if(supSL&&((price-supSL)/price)*100<4&&((price-supSL)/price)*100>0.8)sl=supSL;
+    else sl=price-atrSane*1.5;
+    sl=Math.min(sl,price*0.99);sl=Math.max(sl,price*0.96);
+    const risk=price-sl;
+    const tp1=price+risk*2.5;
+    const tp2=price+risk*4;
+
+    // Forward-Simulation: max 48h
+    let result='timeout',exitPrice=C[Math.min(i+48,C.length-1)],exitBar=Math.min(i+48,C.length-1);
+    for(let k=i+1;k<=Math.min(i+48,C.length-1);k++){
+      if(H[k]>=tp1){result='win';exitPrice=tp1;exitBar=k;break;}
+      if(L[k]<=sl){result='loss';exitPrice=sl;exitBar=k;break;}
+    }
+    if(result==='timeout'){
+      exitPrice=C[exitBar];
+      result=exitPrice>price?'win':'loss';
+    }
+
+    const pnl=parseFloat(((exitPrice-price)/price*SIZE).toFixed(2));
+    const hours=exitBar-i;
+    results.push({bar:i,price,sl,tp1,score:sig.score,result,pnl,hours,
+      rsi:rsi?rsi.toFixed(0):'–',emaCross:emaCross?.bullCross?'🔥Cross':emaCross?.above?'▲':'▼'});
   }
-  
-  // Stats by signal type
-  const wins=closed.filter(t=>t.result==='win');
-  const losses=closed.filter(t=>t.result==='loss');
-  const wr=Math.round(wins.length/closed.length*100);
-  const avgWin=wins.length?wins.reduce((a,b)=>a+b.pnl,0)/wins.length:0;
-  const avgLoss=losses.length?Math.abs(losses.reduce((a,b)=>a+b.pnl,0)/losses.length):0;
-  const expectancy=wins.length&&losses.length?(wr/100*avgWin)-((1-wr/100)*avgLoss):0;
-  const profitFactor=avgLoss>0?(wr/100*avgWin)/((1-wr/100)*avgLoss):0;
-  
-  // Best/worst trades
-  const sorted=[...closed].sort((a,b)=>b.pnl-a.pnl);
-  const best=sorted[0],worst=sorted[sorted.length-1];
-  
-  el.innerHTML=
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
-    +'<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;text-align:center">'
-    +'<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:2px">WINRATE</div>'
-    +'<div style="font-size:20px;font-weight:900;color:'+(wr>=60?'#00ff88':wr>=45?'#ffcc00':'#ff6666')+'">'+wr+'%</div>'
-    +'<div style="font-size:9px;color:rgba(255,255,255,0.3)">'+closed.length+' Trades</div></div>'
-    +'<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;text-align:center">'
-    +'<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:2px">PROFIT FACTOR</div>'
-    +'<div style="font-size:20px;font-weight:900;color:'+(profitFactor>=1.5?'#00ff88':profitFactor>=1?'#ffcc00':'#ff6666')+'">'+profitFactor.toFixed(2)+'</div>'
-    +'<div style="font-size:9px;color:rgba(255,255,255,0.3)">>1.5 = profitabel</div></div></div>'
-    +'<div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:9px;margin-bottom:8px">'
-    +'<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:5px">ERWARTUNGSWERT PRO TRADE</div>'
-    +'<div style="font-size:14px;font-weight:700;color:'+(expectancy>0?'#00ff88':'#ff6666')+'">'+(expectancy>=0?'+':'')+expectancy.toFixed(2)+'$ pro Trade</div>'
-    +'<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px">Ø Win: +$'+avgWin.toFixed(1)+' | Ø Loss: -$'+avgLoss.toFixed(1)+'</div></div>'
-    +(best?'<div style="font-size:9px;color:rgba(255,255,255,0.4)">🏆 Best: '+best.coin+' +$'+best.pnl+' | 💀 Worst: '+worst.coin+' $'+worst.pnl+'</div>':'');
+  return results;
+}
+
+function renderBacktest(){
+  const panel=document.getElementById('bt-content');
+  if(!panel)return;
+
+  // Coin auswählen
+  const selEl=document.getElementById('bt-coin-sel');
+  const sym=selEl?selEl.value:'BTCUSDC';
+  panel.innerHTML='<div style="color:var(--txt3);font-size:12px;padding:20px;text-align:center">⟳ Berechne Backtest...</div>';
+  setTimeout(()=>{
+    const res=runBacktest(sym);
+    if(!res){panel.innerHTML='<div style="color:var(--txt3);padding:20px;text-align:center">Erst Daten laden (↺ UPDATE)</div>';return;}
+    if(res.error){panel.innerHTML=`<div style="color:var(--red);padding:12px">${res.error}</div>`;return;}
+    if(!res.length){panel.innerHTML='<div style="color:var(--txt3);padding:20px;text-align:center">Keine Signale im Backtestzeitraum (zu strenge Filter = gut!)</div>';return;}
+
+    const wins=res.filter(r=>r.result==='win');
+    const losses=res.filter(r=>r.result==='loss');
+    const wr=Math.round(wins.length/res.length*100);
+    const totalPnl=res.reduce((a,b)=>a+b.pnl,0);
+    const avgWin=wins.length?wins.reduce((a,b)=>a+b.pnl,0)/wins.length:0;
+    const avgLoss=losses.length?Math.abs(losses.reduce((a,b)=>a+b.pnl,0)/losses.length):0;
+    const pf=avgLoss>0?(wr/100*avgWin)/((1-wr/100)*avgLoss):0;
+    const expectancy=(wr/100*avgWin)-((1-wr/100)*avgLoss);
+    const avgHours=res.reduce((a,b)=>a+b.hours,0)/res.length;
+    const tradesPerWeek=(res.length/(res.length>0?(res[res.length-1].bar-res[0].bar)/24/7:1)).toFixed(1);
+
+    const wrColor=wr>=60?'var(--green)':wr>=45?'var(--yellow)':'var(--red)';
+    const pfColor=pf>=1.5?'var(--green)':pf>=1?'var(--yellow)':'var(--red)';
+    const pnlColor=totalPnl>=0?'var(--green)':'var(--red)';
+
+    panel.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border)">
+          <div style="font-size:9px;color:var(--txt3);font-weight:700;margin-bottom:3px">WINRATE</div>
+          <div style="font-size:22px;font-weight:900;color:${wrColor}">${wr}%</div>
+          <div style="font-size:9px;color:var(--txt3)">${res.length} Trades</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border)">
+          <div style="font-size:9px;color:var(--txt3);font-weight:700;margin-bottom:3px">PROFIT FACTOR</div>
+          <div style="font-size:22px;font-weight:900;color:${pfColor}">${pf.toFixed(2)}</div>
+          <div style="font-size:9px;color:var(--txt3)">&gt;1.5 = profitabel</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border)">
+          <div style="font-size:9px;color:var(--txt3);font-weight:700;margin-bottom:3px">GESAMT P&L</div>
+          <div style="font-size:18px;font-weight:900;color:${pnlColor}">${totalPnl>=0?'+':''}$${totalPnl.toFixed(0)}</div>
+          <div style="font-size:9px;color:var(--txt3)">auf $1150/Trade</div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:10px;border:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+          <div><span style="color:var(--txt3)">Erwartungswert:</span> <strong style="color:${expectancy>=0?'var(--green)':'var(--red)'}">${expectancy>=0?'+':''}$${expectancy.toFixed(1)}/Trade</strong></div>
+          <div><span style="color:var(--txt3)">Ø Haltedauer:</span> <strong>${avgHours.toFixed(0)}h</strong></div>
+          <div><span style="color:var(--txt3)">Ø Win:</span> <strong style="color:var(--green)">+$${avgWin.toFixed(1)}</strong></div>
+          <div><span style="color:var(--txt3)">Ø Loss:</span> <strong style="color:var(--red)">-$${avgLoss.toFixed(1)}</strong></div>
+          <div><span style="color:var(--txt3)">Trades/Woche:</span> <strong>${tradesPerWeek}</strong></div>
+          <div><span style="color:var(--txt3)">Zeitraum:</span> <strong>~${(res[res.length-1]?.bar/24).toFixed(0)}d Daten</strong></div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--txt3);font-weight:700;margin-bottom:6px;letter-spacing:.5px">LETZTE 10 SIGNALE</div>
+      ${res.slice(-10).reverse().map(r=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 9px;background:${r.result==='win'?'var(--green-bg)':'var(--red-bg)'};border:1px solid ${r.result==='win'?'rgba(0,168,107,0.2)':'rgba(229,57,53,0.2)'};border-radius:8px;margin-bottom:4px;font-size:11px">
+          <span style="font-weight:700">$${r.price.toLocaleString('de-DE',{maximumFractionDigits:0})}</span>
+          <span style="color:var(--txt3)">RSI:${r.rsi} EMA:${r.emaCross} ${r.score}pts</span>
+          <span style="font-weight:700;color:${r.result==='win'?'var(--green)':'var(--red)'}">${r.pnl>=0?'+':''}$${r.pnl} (${r.hours}h)</span>
+        </div>`).join('')}
+      <div style="font-size:9px;color:var(--txt3);margin-top:8px;text-align:center">⚠️ Vergangenheit ≠ Zukunft · Nur auf verfügbaren 1H-Kerzen (max. 100)</div>
+    `;
+  },50);
 }
 
 // ═══════════════════════════════════════
@@ -1726,6 +1880,7 @@ function showPage(name){
   if(pg) pg.classList.add('active');
   if(typeof event!=='undefined'&&event.target) event.target.classList.add('active');
   if(name==='news'){const nf=document.getElementById('newsFeed');if(nf&&!nf.children.length)fetchNews();}
+  if(name==='backtest'){const btc=document.getElementById('bt-content');if(btc&&btc.textContent.includes('Erst Daten')){};}
 }
 
 // ═══════════════════════════════════════
