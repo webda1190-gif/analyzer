@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#f3f5fa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Crypto Analyzer Pro v15</title>
-<!-- v15 · Oktober 2026 · + Setup D (Ausbruchs-Einstieg) · + Setup E (Verdichtungs-Vorwarnung) · + Ausbruch-Check · identische Logik live & Backtest -->
+<title>Crypto Analyzer Pro v15.1</title>
+<!-- v15.1 · Oktober 2026 · + Setup D (Ausbruchs-Einstieg, aus) · + Setup E (Verdichtungs-Vorwarnung, aus) · + Ausbruch-Check · Langzeit-Backtest bis ~3 Jahre · Marktumfeld, Qualitätsstufen, Stabilität · identische Logik live & Backtest -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -130,7 +130,7 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
   <div class="head">
     <div>
       <div class="h-sub">Binance Spot · Long only · 1H / 4H / 1D</div>
-      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v15</span></div>
+      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v15.1</span></div>
       <div class="h-desc" id="statusLine">Lade Marktdaten …</div>
     </div>
     <div style="display:flex;gap:6px">
@@ -178,15 +178,15 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
   <div class="panel">
     <div class="fgrid">
       <div class="field"><label class="fl">Umfang</label><select id="btScope"><option value="ALL">Alle 5 Coins (Portfolio)</option></select></div>
-      <div class="field"><label class="fl">Zeitraum</label><select id="btLen"><option value="2">~83 Tage</option><option value="3">~125 Tage</option><option value="5">~208 Tage</option><option value="1">~41 Tage</option></select></div>
+      <div class="field"><label class="fl">Zeitraum</label><select id="btLen"><option value="2">~83 Tage</option><option value="3">~125 Tage</option><option value="5">~208 Tage</option><option value="9">~1 Jahr</option><option value="18">~2 Jahre</option><option value="27">~3 Jahre</option><option value="1">~41 Tage</option></select></div>
     </div>
-    <div class="tiny muted" style="margin-top:8px;line-height:1.5">Einstieg zum Open der Folgekerze · Gebühren je Seite laut ⚙️ · bei gleicher Kerze zählt der Stop zuerst (konservativ) · 50 % bei TP1, danach Stop auf Einstand · Zeitstop · Portfolio-Limit gleichzeitiger Positionen. News, Fear &amp; Greed und Funding sind historisch nicht enthalten. ~208 Tage gibt es nur mit Binance-Daten (CryptoCompare liefert höchstens ~83 Tage).</div>
+    <div class="tiny muted" style="margin-top:8px;line-height:1.5">Einstieg zum Open der Folgekerze · Gebühren je Seite laut ⚙️ · bei gleicher Kerze zählt der Stop zuerst (konservativ) · 50 % bei TP1, danach Stop auf Einstand · Zeitstop · Portfolio-Limit gleichzeitiger Positionen. News, Fear &amp; Greed und Funding sind historisch nicht enthalten. Ab ~208 Tage gibt es nur mit Binance-Daten (CryptoCompare liefert höchstens ~83 Tage). 1–3 Jahre: Laden und Rechnen dauern je nach Handy bis zu einer Minute oder mehr.</div>
   </div>
-  <div class="panel">
+  <div class="panel" id="boPanel">
     <div class="row" style="align-items:flex-start;gap:10px"><div><div class="lbl" style="margin:0">Ausbruch-Check</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Zählt, wie viele Ausbrüche die App erfasst und wie viele sie verpasst – mit denselben Funktionen wie die Live-Signale, auf den echten Kursen. Umfang und Zeitraum von oben.</div></div><button class="btn" id="boBtn">▶ PRÜFEN</button></div>
   </div>
-  <div id="boOut"></div>
   <div id="btOut"></div>
+  <div id="boOut"></div>
 </section>
 <script>
 'use strict';
@@ -199,7 +199,7 @@ const COINS=[
   {sym:'LINKUSDC',alt:'LINKUSDT',cc:'LINK',fut:'LINKUSDT',name:'Chainlink',short:'LINK',color:'#2A5ADA'},
 ];
 const SETUP_NAMES={A:'Trend-Pullback',B:'Breakout-Retest',C:'RSI-Divergenz',D:'Momentum-Breakout',E:'Verdichtung',M:'Manuell'};
-const CFG_DEF={posSize:1150,feePct:0.1,minQ:60,minRR:1.5,maxSlPct:5,maxPos:2,timeStopH:48,setA:true,setB:true,setC:true,setD:false,setE:true};
+const CFG_DEF={posSize:1150,feePct:0.1,minQ:60,minRR:1.5,maxSlPct:5,maxPos:2,timeStopH:48,setA:true,setB:true,setC:true,setD:false,setE:false};
 const IV={'1h':3600000,'4h':14400000,'1d':86400000};
 const BN_HOSTS=['https://data-api.binance.vision/api/v3','https://api.binance.com/api/v3'];
 const CC_BASE='https://min-api.cryptocompare.com/data';
@@ -266,8 +266,9 @@ async function bnPaged(sym,iv,total){
   let out=null,end=null;
   while(!out||out.t.length<total){
     const need=Math.min(1000,total-(out?out.t.length:0));
-    const s=await bnKlines(sym,iv,need,end);
+    let s;try{s=await bnKlines(sym,iv,need,end);}catch(e){if(!out||/HTTP 400/.test(e.message))throw e;if(/leere Antwort/.test(e.message))break;await new Promise(r=>setTimeout(r,600));s=await bnKlines(sym,iv,need,end);}
     out=out?concatS(s,out):s;
+    if(HPROG)HPROG();
     if(s.t.length<need)break;
     end=s.t[0]-1;
   }
@@ -1036,7 +1037,7 @@ function renderCfg(){
     <div class="field"><label class="fl">Setups aktiv</label><div style="display:flex;flex-wrap:wrap;gap:6px 12px;padding:9px 0">${['A','B','C','D','E'].map(k=>`<label style="display:flex;gap:4px;align-items:center;font-size:13px;font-weight:700"><input type="checkbox" id="cfg_set${k}" ${CFG['set'+k]?'checked':''}> ${k}</label>`).join('')}</div></div>
    </div>
    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn green" onclick="saveCfgUI()">Speichern</button><button class="btn ghost" onclick="resetCfg()">Standard</button><button class="btn ghost" onclick="askNotify()">🔔 Alarme</button></div>
-   <div class="tiny muted" style="margin-top:8px;line-height:1.5">A = Trend-Pullback · B = Breakout-Retest · C = RSI-Divergenz (Gegentrend) · D = Momentum-Breakout (Einstieg direkt beim Ausbruch – neu und am echten Markt ungeprüft: erst Backtest-Tab → Ausbruch-Check ansehen) · E = Verdichtung (nur Vorwarnung, kein Kauf). Gebühr 0,1 % = Binance-Standard (mit BNB-Rabatt 0,075 %). Mindestqualität über den Backtest kalibrieren. Alarme (Einblendung, Vibration) funktionieren nur bei geöffneter Seite – kein Hintergrund-Push.</div>
+   <div class="tiny muted" style="margin-top:8px;line-height:1.5">A = Trend-Pullback · B = Breakout-Retest · C = RSI-Divergenz (Gegentrend) · D = Momentum-Breakout (Einstieg direkt beim Ausbruch – im Test auf echten Kursen 4–10/2026 verlustreich, Profit-Faktor 0,39: daher aus; der Backtest-Tab → Ausbruch-Check zeigt es mit deinen Daten) · E = Verdichtung (nur Vorwarnung, kein Kauf – dort kein Vorteil gemessen: daher aus). Gebühr 0,1 % = Binance-Standard (mit BNB-Rabatt 0,075 %). Mindestqualität über den Backtest kalibrieren. Alarme (Einblendung, Vibration) funktionieren nur bei geöffneter Seite – kein Hintergrund-Push.</div>
    <div class="tiny muted" style="margin-top:8px;line-height:1.5">Datenquelle: ${Date.now()<bnDownUntil?`CryptoCompare – Binance ist in diesem Browser gesperrt (nächster Test ${new Date(bnDownUntil).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})}). <button class="btn small ghost" onclick="retestBinance()">Binance jetzt testen</button>`:'Binance (Fallback CryptoCompare)'}</div>`;
 }
 function retestBinance(){bnDownUntil=0;lsSet(BN_KEY,0);hostOrder=[...BN_HOSTS];BTCACHE=null;$('cfgPanel').style.display='none';fetchAll(true);}
@@ -1154,7 +1155,7 @@ async function loadHistory(coin,pages){
   const d=DATA[coin.sym],bsym=d?d.bsym:coin.sym;
   if((!d||d.src==='bn')&&Date.now()>bnDownUntil){
     try{
-      const [h1,h4,d1]=await Promise.all([bnPaged(bsym,'1h',pages*1000),bnPaged(bsym,'4h',pages*250+320),bnKlines(bsym,'1d',500)]);
+      const [h1,h4,d1]=await Promise.all([bnPaged(bsym,'1h',pages*1000),bnPaged(bsym,'4h',pages*250+320),pages<=5?bnKlines(bsym,'1d',500):bnPaged(bsym,'1d',Math.ceil(pages*1000/24)+300)]);
       return{h1:trim(h1),h4:trim(h4),d1:trim(d1),src:'bn',bsym};
     }catch(e){}
   }
@@ -1197,32 +1198,39 @@ function btStats(tr,weeks){
     dd,fees:tr.reduce((a,t)=>a+t.fees,0),perWeek:weeks>0?n/weeks:0,curve};
 }
 async function runBacktest(){
-  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}btBusy=true;const out=$('btOut'),btn=$('btBtn');btn.disabled=true;
+  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}btBusy=true;const out=$('btOut'),btn=$('btBtn');btn.disabled=true;btn.textContent='⟳ …';
+  out.innerHTML='<div class="panel loading">⟳ Backtest startet …</div>';showOut(out);
   const scope=$('btScope').value,pages=+$('btLen').value;
   try{
     const coins=scope==='ALL'?COINS:COINS.filter(c=>c.sym===scope);
     const raws=await getRaws(coins,pages,out);
-    out.innerHTML='<div class="panel loading">⟳ Simuliere Strategie …</div>';
-    await new Promise(r=>setTimeout(r,20));
-    const t0=performance.now(),btc=buildCtx(raws.BTCUSDC,null);
-    const runs=coins.map(c=>{const ctx=c.sym==='BTCUSDC'?btc:buildCtx(raws[c.sym],btc);return{coin:c,ctx,sig:scanSignals(ctx,c.sym!=='BTCUSDC')};});
+    out.innerHTML='<div class="panel loading">⟳ Berechne Indikatoren …</div>';await paint();
+    const t0=performance.now(),btc=buildCtx(raws.BTCUSDC,null),runs=[];
+    for(const c of coins){
+      out.innerHTML=`<div class="panel loading">⟳ Suche Signale · ${c.short} (${runs.length+1}/${coins.length}) …</div>`;
+      await paint();
+      const ctx=c.sym==='BTCUSDC'?btc:buildCtx(raws[c.sym],btc);
+      runs.push({coin:c,ctx,sig:scanSignals(ctx,c.sym!=='BTCUSDC')});
+    }
+    out.innerHTML='<div class="panel loading">⟳ Rechne Kalibrierung und Auswertungen …</div>';await paint();
     const X0=runs[0].ctx.h1;if(X0.n<WARM+100)throw new Error('Zu wenig historische Daten');
     const from=X0.t[WARM],to=X0.T[X0.n-1],weeks=(to-from)/(7*864e5);
     const run=th=>{let all=[];for(const R of runs)all=all.concat(simulate(R.ctx.h1,R.sig,th,R.coin));return scope==='ALL'?portfolio(all,CFG.maxPos):all.sort((a,b)=>a.tIn-b.tIn);};
     const calib=[40,45,50,55,60,65,70,75,80].map(th=>({th,st:btStats(run(th),weeks)}));
     const main=run(CFG.minQ),st=btStats(main,weeks),mid=from+(to-from)/2;
     const h1=btStats(main.filter(t=>t.tIn<mid),weeks/2),h2=btStats(main.filter(t=>t.tIn>=mid),weeks/2);
-    renderBT({st,calib,main,h1,h2,weeks,scope,from,to,raws,ms:Math.round(performance.now()-t0)});
+    const mkt=marketCtx(runs),qb=qBuckets(runs,weeks),tc=timeChunks(main,from,to,weeks);
+    renderBT({st,calib,main,h1,h2,weeks,scope,from,to,raws,pages,mkt,qb,tc,ms:Math.round(performance.now()-t0)});
   }catch(e){console.error(e);out.innerHTML=`<div class="panel"><b class="r">⚠️ Backtest fehlgeschlagen</b><div class="small muted" style="margin-top:4px">${esc(e.message)}</div></div>`;}
-  finally{btBusy=false;btn.disabled=false;}
+  finally{btBusy=false;btn.disabled=false;btn.textContent='▶ START';}
 }
 function groupRows(tr,key,weeks){const m={};for(const t of tr)(m[key(t)]=m[key(t)]||[]).push(t);return Object.entries(m).map(([k,v])=>({k,st:btStats(v,weeks)}));}
 function groupTable(rows,label){
   if(!rows.length)return'<div class="tiny muted">keine Trades</div>';const pfs=x=>x===Infinity?'∞':nf(x,2);
-  return`<div class="twrap"><table class="t"><tr><th></th><th>Trades</th><th>Treffer</th><th>PF</th><th>Netto</th></tr>${rows.map(r=>`<tr><td>${esc(label(r.k))}</td><td>${r.st.n}</td><td>${nf(r.st.wr,0)}%</td><td>${pfs(r.st.pf)}</td><td class="${r.st.net>=0?'g':'r'}">${usd(r.st.net,0)}</td></tr>`).join('')}</table></div>`;
+  return`<div class="twrap"><table class="t"><tr><th></th><th>Trades</th><th>Treffer</th><th>PF</th><th>Netto</th></tr>${rows.map(r=>`<tr><td>${esc(label(r.k))}</td><td>${r.st.n}</td><td>${nf(r.st.wr,0)}%</td><td>${pfs(r.st.pf)}</td><td class="${r.st.net>=0?'g':'r'}" style="white-space:nowrap">${usd(r.st.net,0)}</td></tr>`).join('')}</table></div>`;
 }
 function renderBT(o){
-  const {st,calib,main,h1,h2,weeks,scope,from,to,raws,ms}=o,pfs=x=>x===Infinity?'∞':nf(x,2);
+  const {st,calib,main,h1,h2,weeks,scope,from,to,raws,ms,pages,mkt,qb,tc}=o,pfs=x=>x===Infinity?'∞':nf(x,2);
   let verdict,vc;
   if(st.n<20){verdict=`Nur ${st.n} Trades – statistisch nicht belastbar. Längeren Zeitraum wählen.`;vc='warn';}
   else if(st.pf>=1.3&&h1.pf>=1&&h2.pf>=1){verdict='Positiver Erwartungswert, stabil in beiden Zeithälften.';vc='ok';}
@@ -1231,9 +1239,10 @@ function renderBT(o){
   let pick=null;for(const c of calib)if(c.st.pf>1&&c.st.n>=10&&(!pick||Math.abs(c.st.perWeek-5.5)<Math.abs(pick.st.perWeek-5.5)))pick=c;
   const srcTxt=[...new Set(Object.values(raws).map(r=>r.src==='bn'?'Binance':'CryptoCompare'))].join(' + ');
   const fmtD=ts=>new Date(ts).toLocaleDateString('de-DE');
+  const days=(to-from)/864e5,wantD=pages?pages*1000/24-10:0,covW=pages&&days<0.7*wantD?`<div class="chk warn" style="margin-bottom:8px"><span>${ICO.warn}</span><span>Nur ${nf(days,0)} Tage geladen statt der gewählten ~${nf(wantD,0)} – Binance war nicht durchgehend erreichbar, CryptoCompare liefert höchstens ~83 Tage. Das Ergebnis hat entsprechend weniger Gewicht.</span></div>`:'';
   $('btOut').innerHTML=`
    <div class="panel"><div class="lbl">Ergebnis · Min-Qualität ${CFG.minQ} · ${scope==='ALL'?'Portfolio, max. '+CFG.maxPos+' Positionen':esc(scope)}</div>
-    <div class="chk ${vc}" style="margin-bottom:8px"><span>${ICO[vc]}</span><span>${verdict}</span></div>
+    ${covW}<div class="chk ${vc}" style="margin-bottom:8px"><span>${ICO[vc]}</span><span>${verdict}</span></div>
     <div class="kpis">
      ${kpi(st.n,'Trades')}${kpi(nf(st.perWeek,1),'Trades / Woche',st.perWeek>=4&&st.perWeek<=7?'g':'a')}${kpi(nf(st.wr,0)+' %','Trefferquote')}
      ${kpi(pfs(st.pf),'Profit-Faktor',st.pf>=1.3?'g':st.pf>=1?'a':'r')}${kpi(usd(st.net,0),'Netto-P&amp;L',st.net>=0?'g':'r')}${kpi(usd(-st.dd,0),'Max. Drawdown','r')}
@@ -1242,15 +1251,18 @@ function renderBT(o){
     <canvas id="eqCv" class="chart" style="height:120px"></canvas>
     <div class="tiny muted" style="margin-top:4px">Equity-Kurve (kumulierter Netto-P&amp;L) · ${fmtD(from)} – ${fmtD(to)} · ${nf(weeks,1)} Wochen · ${srcTxt} · ${ms} ms</div>
     <div class="row small" style="margin-top:8px"><span>Stabilität 1. / 2. Hälfte</span><b class="num">PF ${pfs(h1.pf)} (${h1.n}) / ${pfs(h2.pf)} (${h2.n})</b></div>
+    <div class="row small" style="margin-top:4px"><span>Netto vor Gebühren</span><b class="num ${st.net+st.fees>=0?'g':'r'}">${usd(st.net+st.fees,0)}</b></div>
    </div>
+   ${mktHTML(mkt)}
    <div class="panel"><div class="lbl">Kalibrierung – Ziel 5–6 Trades pro Woche</div>
     <div class="twrap"><table class="t"><tr><th>Min-Q</th><th>Tr./Wo</th><th>Treffer</th><th>PF</th><th>Netto</th><th></th></tr>
-    ${calib.map(c=>`<tr class="${pick&&c.th===pick.th?'hl':''}"><td>${c.th}${c.th===CFG.minQ?' •':''}</td><td>${nf(c.st.perWeek,1)}</td><td>${nf(c.st.wr,0)}%</td><td>${pfs(c.st.pf)}</td><td class="${c.st.net>=0?'g':'r'}">${usd(c.st.net,0)}</td><td>${c.th!==CFG.minQ?`<button class="btn small ghost" onclick="applyMinQ(${c.th})">nutzen</button>`:''}</td></tr>`).join('')}
+    ${calib.map(c=>`<tr class="${pick&&c.th===pick.th?'hl':''}"><td>${c.th}${c.th===CFG.minQ?' •':''}</td><td>${nf(c.st.perWeek,1)}</td><td>${nf(c.st.wr,0)}%</td><td>${pfs(c.st.pf)}</td><td class="${c.st.net>=0?'g':'r'}" style="white-space:nowrap">${usd(c.st.net,0)}</td><td>${c.th!==CFG.minQ?`<button class="btn small ghost" onclick="applyMinQ(${c.th})">nutzen</button>`:''}</td></tr>`).join('')}
     </table></div>
     <div class="tiny muted" style="margin-top:6px;line-height:1.5">${pick?`Empfehlung: Min-Q ${pick.th} (≈ ${nf(pick.st.perWeek,1)} Trades/Woche, PF ${pfs(pick.st.pf)}).`:'Keine Schwelle mit PF > 1 und ≥ 10 Trades – in diesem Marktumfeld besser nicht handeln.'} • = aktuell. Frequenz nie auf Kosten des PF erzwingen.</div>
    </div>
    <div class="panel"><div class="lbl">Nach Setup</div>${groupTable(groupRows(main,t=>t.type,weeks),k=>k+' · '+SETUP_NAMES[k])}</div>
    ${scope==='ALL'?`<div class="panel"><div class="lbl">Nach Coin</div>${groupTable(groupRows(main,t=>t.coin,weeks),k=>k)}</div>`:''}
+   ${qbHTML(qb)}${tcHTML(tc)}
    <div class="panel"><div class="lbl">Letzte Trades</div>${main.slice(-15).reverse().map(t=>`<div class="row small" style="padding:6px 0;border-bottom:1px solid var(--bg3)"><span><b>${t.coin}</b> ${t.type} · Q ${t.q}<br><span class="tiny muted">${new Date(t.tIn).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${t.why}</span></span><b class="num ${t.pnl>=0?'g':'r'}" style="text-align:right">${usd(t.pnl)}<br><span class="tiny">${sg(t.R,2)} R</span></b></div>`).join('')||'<div class="tiny muted">keine</div>'}</div>
    <div class="tiny muted" style="line-height:1.55;margin:4px 2px 10px">Annahmen: Signal auf geschlossener 1H-Kerze, Einstieg zum Open der Folgekerze, Gebühr ${nf(CFG.feePct,2)} % je Seite, Stop vor Ziel bei gleicher Kerze, 50 % bei TP1 + Einstand-Stop, Zeitstop ${CFG.timeStopH} h. Slippage nicht enthalten. Vergangene Ergebnisse garantieren nichts.</div>`;
   requestAnimationFrame(()=>drawEquity($('eqCv'),st.curve));
@@ -1268,13 +1280,81 @@ function drawEquity(cv,curve){
 }
 function applyMinQ(th){CFG.minQ=th;lsSet('ca_cfg',CFG);analyzeAll();renderAll();toast(`Min-Qualität auf ${th} gesetzt`);runBacktest();}
 
-/* Historie laden (gemeinsamer Cache für Backtest und Ausbruch-Check, 30 min) */
+/* Historie laden (gemeinsamer Cache für Backtest und Ausbruch-Check, 30 min) – mit Fortschritt in % */
+let HPROG=null;
 async function getRaws(coins,pages,out){
   const need=[...new Set(['BTCUSDC',...coins.map(c=>c.sym)])],key=pages+'|'+need.join(',');
   if(BTCACHE&&BTCACHE.key===key&&Date.now()-BTCACHE.ts<30*60e3)return BTCACHE.raws;
-  const raws={};let done=0;const prog=()=>{out.innerHTML=`<div class="panel loading">⟳ Lade Historie … ${done}/${need.length}</div>`;};prog();
-  await Promise.all(need.map(async sym=>{raws[sym]=await loadHistory(COINS.find(c=>c.sym===sym),pages);done++;prog();}));
+  const raws={};let done=0,pg=0;
+  const tot=need.length*(pages+Math.ceil((pages*250+320)/1000)+(pages>5?Math.ceil((pages*1000/24+300)/1000):0));
+  const prog=()=>{out.innerHTML=`<div class="panel loading">⟳ Lade Historie … ${Math.min(99,Math.round(pg/tot*100))} % (${done}/${need.length} Coins)</div>`;};prog();
+  HPROG=()=>{pg++;prog();};
+  try{await Promise.all(need.map(async sym=>{raws[sym]=await loadHistory(COINS.find(c=>c.sym===sym),pages);done++;prog();}));}
+  finally{HPROG=null;}
   BTCACHE={key,raws,ts:Date.now()};return raws;
+}
+/* ── Anzeige: Ergebnis direkt unter die Knöpfe holen und dorthin scrollen
+   (sonst „passiert nichts“, wenn die andere Ausgabe lang ist und das Ergebnis weit unten landet) ── */
+function showOut(el){
+  const anchor=$('boPanel');if(anchor&&el.previousElementSibling!==anchor)anchor.after(el);
+  el.style.scrollMarginTop='72px';
+  try{el.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){el.scrollIntoView();}
+}
+/* ── Vor jedem schweren Rechenschritt einmal wirklich zeichnen lassen (sonst bleibt der Bildschirm bis zum Ende eingefroren).
+   Rückfall-Timer, falls der Tab im Hintergrund liegt und keine Frames kommen ── */
+function paint(){return new Promise(r=>{let d=0;const f=()=>{if(!d){d=1;r();}};try{requestAnimationFrame(()=>setTimeout(f,0));}catch(e){}setTimeout(f,150);});}
+/* ── Marktumfeld im Testzeitraum: Kursänderung (Buy & Hold) und Anteil 4H-Trend je Coin ── */
+function marketCtx(runs){
+  return runs.map(R=>{
+    const X=R.ctx.h1,h4=R.ctx.h4,a4=R.ctx.a4;let b=0,r=0,nn=0,n=0;
+    for(let e=WARM;e<X.n;e++){const s=reg4At(h4,a4[e]).state;if(s==='bull')b++;else if(s==='bear')r++;else if(s==='neutral')nn++;else continue;n++;}
+    return{coin:R.coin.short,chg:(X.c[X.n-1]/X.c[WARM]-1)*100,bull:n?b/n:0,neu:n?nn/n:0,bear:n?r/n:0};
+  });
+}
+function mktHTML(m){
+  if(!m||!m.length)return'';
+  const P=x=>nf(x*100,0)+' %',avg=k=>m.reduce((a,x)=>a+x[k],0)/m.length,ca=avg('chg');
+  return`<div class="panel"><div class="lbl">Marktumfeld im Testzeitraum</div>
+   <div class="twrap"><table class="t"><tr><th></th><th>Kurs</th><th>4H bullisch</th><th>neutral</th><th>bärisch</th></tr>
+   ${m.map(x=>`<tr><td>${x.coin}</td><td class="${x.chg>=0?'g':'r'}" style="white-space:nowrap">${sg(x.chg,0)} %</td><td>${P(x.bull)}</td><td>${P(x.neu)}</td><td>${P(x.bear)}</td></tr>`).join('')}
+   ${m.length>1?`<tr><td><b>Ø</b></td><td class="${ca>=0?'g':'r'}" style="white-space:nowrap"><b>${sg(ca,0)} %</b></td><td><b>${P(avg('bull'))}</b></td><td><b>${P(avg('neu'))}</b></td><td><b>${P(avg('bear'))}</b></td></tr>`:''}
+   </table></div>
+   <div class="tiny muted" style="margin-top:6px;line-height:1.5">Kurs = Veränderung vom Start bis zum Ende des Testzeitraums (Buy &amp; Hold). 4H-Trend = Anteil der Zeit mit Kurs &gt; EMA50 &gt; EMA200 (bullisch) bzw. umgekehrt (bärisch), der Rest neutral. Eine reine Long-Strategie braucht steigende Märkte – in seitwärts oder abwärts laufenden Phasen verliert sie meist. Das Ergebnis gilt nur für dieses Umfeld.</div></div>`;
+}
+/* ── Trennt die Qualitätsnote Gewinner von Verlierern? Alle Signale ab Q 40 (ohne Portfolio-Limit), in Stufen ── */
+function qBuckets(runs,weeks){
+  let all=[];for(const R of runs)all=all.concat(simulate(R.ctx.h1,R.sig,40,R.coin));
+  return[[40,50,'Q 40–49'],[50,60,'Q 50–59'],[60,70,'Q 60–69'],[70,101,'Q ≥ 70']].map(([a,b,lab])=>({lab,st:btStats(all.filter(t=>t.q>=a&&t.q<b),weeks)}));
+}
+function qbHTML(qb){
+  if(!qb)return'';const pfs=x=>x===Infinity?'∞':nf(x,2),big=qb.filter(b=>b.st.n>=30);let v;
+  if(big.length<2)v=['warn','Zu wenige Trades je Stufe (unter 30) – so lässt sich nicht beurteilen, ob die Note sortiert. Längeren Zeitraum wählen.'];
+  else{const lo=big[0].st,hi=big[big.length-1].st;
+    v=(hi.pf>=lo.pf+0.25&&hi.avgR>lo.avgR)?(hi.pf>=1?['ok','Die Qualitätsnote sortiert: höhere Stufen schneiden besser ab.']:['warn','Die Qualitätsnote sortiert (höhere Stufen schneiden besser ab) – aber auch die beste Stufe liegt mit PF '+pfs(hi.pf)+' unter 1, also nach Gebühren im Minus.']):['fail','Die Qualitätsnote sortiert in diesen Daten nicht: höhere Stufen sind nicht besser. Dann sagt „Min-Q“ wenig über die Chance eines Trades.'];}
+  return`<div class="panel"><div class="lbl">Trennt die Qualitätsnote? (alle Signale ab Q 40, ohne Portfolio-Limit)</div>
+   <div class="chk ${v[0]}" style="margin-bottom:8px"><span>${ICO[v[0]]}</span><span>${v[1]}</span></div>
+   <div class="twrap"><table class="t"><tr><th></th><th>Trades</th><th>Treffer</th><th>PF</th><th>Ø R</th><th>Netto</th></tr>
+   ${qb.map(b=>`<tr><td style="white-space:nowrap">${b.lab}</td><td>${b.st.n}</td><td>${b.st.n?nf(b.st.wr,0)+'%':'–'}</td><td>${b.st.n?pfs(b.st.pf):'–'}</td><td>${b.st.n?sg(b.st.avgR,2):'–'}</td><td class="${b.st.net>=0?'g':'r'}" style="white-space:nowrap">${usd(b.st.net,0)}</td></tr>`).join('')}</table></div>
+   <div class="tiny muted" style="margin-top:6px;line-height:1.5">Stufen nicht kumulativ. Ein brauchbares Qualitätsmaß müsste von oben nach unten besser werden (Kriterium: PF der höchsten Stufe mit ≥ 30 Trades mindestens 0,25 über der niedrigsten). Unter ~30 Trades je Stufe ist das Zufall.</div></div>`;
+}
+/* ── Stabilität über die Zeit: gleich lange Abschnitte (Quartals-Größe) ── */
+function timeChunks(main,from,to,weeks){
+  const k=Math.max(2,Math.min(12,Math.round(weeks/13))),w=(to-from)/k,out=[];
+  for(let i=0;i<k;i++){const a=from+i*w,b=from+(i+1)*w;out.push({a,b,st:btStats(main.filter(t=>t.tIn>=a&&(i===k-1||t.tIn<b)),weeks/k)});}
+  return out;
+}
+function tcHTML(tc){
+  if(!tc||tc.length<3)return'';const pfs=x=>x===Infinity?'∞':nf(x,2),MN=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'],fm=ts=>{const d=new Date(ts);return MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2);};
+  const den=tc.filter(c=>c.st.n>=5).length,pos=tc.filter(c=>c.st.n>=5&&c.st.pf>1).length,tot=tc.reduce((a,c)=>a+c.st.net,0);let v;
+  if(den<3)v=['warn','Zu wenige Abschnitte mit mindestens 5 Trades – so lässt sich die Stabilität nicht beurteilen. Längeren Zeitraum wählen.'];
+  else if(pos/den>=2/3&&tot>0)v=['ok','Stabil: in '+pos+' von '+den+' Abschnitten liegt der Profit-Faktor über 1 – der Vorteil kommt nicht nur aus einer einzigen Phase.'];
+  else if(pos/den<=1/3||(tot<=0&&pos/den<0.5))v=['fail','Kein stabiler Vorteil: nur in '+pos+' von '+den+' Abschnitten liegt der Profit-Faktor über 1'+(tot<=0?' und die Summe aller Abschnitte steht im Minus.':' – der Gewinn kommt aus wenigen Phasen.')];
+  else v=['warn','Wechselhaft: in '+pos+' von '+den+' Abschnitten liegt der Profit-Faktor über 1. Der Erfolg hängt stark vom Marktumfeld ab.'];
+  return`<div class="panel"><div class="lbl">Stabilität über die Zeit (Abschnitte à ~${nf((tc[0].b-tc[0].a)/(7*864e5),0)} Wochen)</div>
+   <div class="chk ${v[0]}" style="margin-bottom:8px"><span>${ICO[v[0]]}</span><span>${v[1]}</span></div>
+   <div class="twrap"><table class="t"><tr><th>Abschnitt</th><th>Trades</th><th>Treffer</th><th>PF</th><th>Netto</th></tr>
+   ${tc.map(c=>`<tr><td style="white-space:nowrap">${fm(c.a)}–${fm(c.b)}</td><td>${c.st.n}</td><td>${c.st.n?nf(c.st.wr,0)+'%':'–'}</td><td>${c.st.n?pfs(c.st.pf):'–'}</td><td class="${c.st.net>=0?'g':'r'}" style="white-space:nowrap">${usd(c.st.net,0)}</td></tr>`).join('')}</table></div>
+   <div class="tiny muted" style="margin-top:6px;line-height:1.5">Gezählt werden nur Abschnitte mit mindestens 5 Trades. Ein echter Vorteil zeigt sich in den meisten Abschnitten (mindestens zwei Drittel) – nicht nur in einem.</div></div>`;
 }
 /* ════════════════ AUSBRUCH-CHECK ════════════════
    Frage: „Verpasst die App Ausbrüche – und lohnt es sich, sie zu handeln?“ Gemessen an den Kursen, mit denselben Funktionen wie die Live-Signale.
@@ -1371,22 +1451,24 @@ function btCompare(per,scope){
   return{weeks,old:mk('sigOld'),neu:mk('sigNew'),onlyD:mk('sigD')};
 }
 async function runBreakoutCheck(){
-  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}btBusy=true;const out=$('boOut'),btn=$('boBtn');btn.disabled=true;
+  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}btBusy=true;const out=$('boOut'),btn=$('boBtn');btn.disabled=true;btn.textContent='⟳ …';
+  out.innerHTML='<div class="panel loading">⟳ Ausbruch-Check startet …</div>';showOut(out);
   const scope=$('btScope').value,pages=+$('btLen').value;
   try{
     const coins=scope==='ALL'?COINS:COINS.filter(c=>c.sym===scope);
     const raws=await getRaws(coins,pages,out);
+    out.innerHTML='<div class="panel loading">⟳ Berechne Indikatoren …</div>';await paint();
     const t0=performance.now(),btc=buildCtx(raws.BTCUSDC,null),per=[];
     for(const c of coins){
       out.innerHTML=`<div class="panel loading">⟳ Zähle Ausbrüche · ${c.short} (${per.length+1}/${coins.length}) …</div>`;
-      await new Promise(r=>setTimeout(r,25));
+      await paint();
       const ctx=c.sym==='BTCUSDC'?btc:buildCtx(raws[c.sym],btc);
       per.push(boCheckCoin(c,ctx,c.sym!=='BTCUSDC'));
     }
     if(per[0].ctx.h1.n<WARM+100)throw new Error('Zu wenig historische Daten');
-    renderBO(per,{raws,scope,cmp:btCompare(per,scope),ms:Math.round(performance.now()-t0)});
+    renderBO(per,{raws,scope,pages,cmp:btCompare(per,scope),ms:Math.round(performance.now()-t0)});
   }catch(e){console.error(e);out.innerHTML=`<div class="panel"><b class="r">⚠️ Ausbruch-Check fehlgeschlagen</b><div class="small muted" style="margin-top:4px">${esc(e.message)}</div></div>`;}
-  finally{btBusy=false;btn.disabled=false;}
+  finally{btBusy=false;btn.disabled=false;btn.textContent='▶ PRÜFEN';}
 }
 function boSummary(per){
   const all=per.flatMap(p=>p.rows.map(r=>({...r,coin:p.coin}))),win=all.filter(r=>r.res==='win'),stop=all.filter(r=>r.res==='stop');
@@ -1409,18 +1491,22 @@ function renderBO(per,meta){
     lines.push([ro<0.5?'fail':'ok',`Bisherige Logik (A/B/C): ${S.capO} von ${nW} Gewinner-Ausbrüchen als Kaufsignal erfasst (${P(S.capO,nW)})${ro<0.5?' – die Mehrheit wird verpasst.':'.'}`]);
     lines.push([pn>=0.4?'ok':pn>=base-0.03?'warn':'fail',`Mit D/E: ${S.capN} von ${nW} (${P(S.capN,nW)}). Von den erfassten Einstiegen werden ${P(S.precN.w,S.precN.n)} Gewinner (alle Ausbrüche zum Vergleich: ${P(nW,nA)}).`]);
   }
+  const days=(to-from)/864e5,wantD=meta.pages?meta.pages*1000/24-10:0;
+  if(meta.pages&&days<0.7*wantD)lines.unshift(['warn',`Nur ${nf(days,0)} Tage geladen statt der gewählten ~${nf(wantD,0)} – Binance war nicht durchgehend erreichbar, CryptoCompare liefert höchstens ~83 Tage. Das Ergebnis hat entsprechend weniger Gewicht.`]);
   const row=(lab,p)=>`<tr><td>${lab}</td><td>${p.n}</td><td>${P(p.w,p.n)}</td><td>${P(p.s,p.n)}</td></tr>`;
-  const cmpRow=(lab,s)=>`<tr><td>${lab}</td><td>${s.n}</td><td>${nf(s.perWeek,1)}</td><td>${nf(s.wr,0)} %</td><td>${pfs(s.pf)}</td><td class="${s.net>=0?'g':'r'}">${usd(s.net,0)}</td><td>${sg(s.avgR,2)}</td></tr>`;
+  const cmpRow=(lab,s)=>`<tr><td>${lab}</td><td>${s.n}</td><td>${nf(s.perWeek,1)}</td><td>${nf(s.wr,0)} %</td><td>${pfs(s.pf)}</td><td class="${s.net>=0?'g':'r'}" style="white-space:nowrap">${usd(s.net,0)}</td><td>${sg(s.avgR,2)}</td></tr>`;
   let dv;
   if(cmp.onlyD.n<20)dv=['warn',`Nur ${cmp.onlyD.n} D-Trades im Zeitraum – zu wenig für ein Urteil. Längeren Zeitraum wählen.`];
   else if(cmp.onlyD.pf>=1.2&&cmp.onlyD.avgR>0)dv=['ok',`D allein: Profit-Faktor ${pfs(cmp.onlyD.pf)}, Ø ${sg(cmp.onlyD.avgR,2)} R je Trade. In diesem Zeitraum trägt D bei – kein Beweis für die Zukunft.`];
   else if(cmp.onlyD.pf<1)dv=['fail',`D allein verliert in diesem Zeitraum nach Gebühren (Profit-Faktor ${pfs(cmp.onlyD.pf)}). Ausgeschaltet lassen.`];
   else dv=['warn',`D allein: Profit-Faktor ${pfs(cmp.onlyD.pf)} – Grenzfall, kein klarer Vorteil.`];
-  const alRow=(lab,t)=>`<tr><td>${lab}</td><td>${t.n}</td><td>${P(t.brk,t.n)}</td><td>${P(t.win,t.n)}</td><td>${P(t.stop,t.n)}</td></tr>`;
-  const rateA=S.al.n?S.al.brk/S.al.n:0,rateB=S.base.n?S.base.brk/S.base.n:0;
+  const alRow=(lab,t)=>`<tr><td>${lab}</td><td>${t.n}</td><td>${P(t.brk,t.n)}</td><td>${t.brk?P(t.win,t.brk):'–'}</td><td>${t.brk?P(t.stop,t.brk):'–'}</td></tr>`;
+  const rateA=S.al.n?S.al.brk/S.al.n:0,rateB=S.base.n?S.base.brk/S.base.n:0,wA=S.al.brk?S.al.win/S.al.brk:0,wB=S.base.brk?S.base.win/S.base.brk:0;
   let alTxt;
   if(S.al.n<15)alTxt=`Nur ${S.al.n} Verdichtungs-Alarme – zu wenig für eine Aussage.`;
-  else alTxt=rateA-rateB>=0.08?'Nach einer Verdichtung folgt häufiger ein Ausbruch nach oben als in vergleichbarer Lage ohne – die Vorwarnung hat hier Informationswert. Ob dieser Ausbruch auch trägt, zeigt die Gewinner-Spalte.':'Kein messbarer Vorteil der Verdichtung in diesen Daten – dann ist E nur ein Hinweis, kein Signal. Setup E in ⚙️ abschalten ist dann vertretbar.';
+  else if(S.al.brk<30)alTxt=`Nur ${S.al.brk} Ausbrüche nach Verdichtung – zu wenig für eine Aussage (unter ~30 ist das Zufall). Längeren Zeitraum wählen.`;
+  else if(wA>=wB+0.05)alTxt=`Ausbrüche nach einer Verdichtung gewinnen öfter (${P(S.al.win,S.al.brk)} statt ${P(S.base.win,S.base.brk)}) – die Vorwarnung hat hier Informationswert. Fallzahl beachten.`;
+  else alTxt=`Ausbrüche nach einer Verdichtung gewinnen nicht öfter (${P(S.al.win,S.al.brk)} statt ${P(S.base.win,S.base.brk)}). ${rateA>rateB+0.03?'Dass sie etwas häufiger kommen, hilft nur, wenn sie auch tragen – hier kein Vorteil.':'Sie kommen auch nicht häufiger.'} E ist dann nur ein Hinweis, kein Signal; Setup E in ⚙️ abgeschaltet zu lassen ist vertretbar.`;
   const clsRows=Object.entries(S.cls).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>{
     const dec=v.w+v.s,share=dec?v.w/dec:null;let mark='';
     if(k!=='KAUF'&&v.n>=15&&dec&&nA){const bs=nW/(nW+S.stop.length||1);mark=share<bs-0.05?' ✅':share>bs+0.05?' ⚠️':'';}
@@ -1444,7 +1530,7 @@ function renderBO(per,meta){
     <div class="tiny muted" style="margin-top:6px;line-height:1.5">Gew.-Anteil = Gewinner ÷ (Gewinner + Fehlausbrüche). ✅ = dieser Filter hält überwiegend Verlierer fern (Anteil klar unter dem Durchschnitt aller Ausbrüche: ${P(nW,nW+S.stop.length)}). ⚠️ = er hält überdurchschnittlich viele Gewinner fern – hier lohnt sich Lockern.</div></div>
    <div class="panel"><div class="lbl">Vorwarnung: Verdichtung (Setup E)</div>
     <div class="twrap"><table class="t"><tr><th></th><th>Fälle</th><th>Ausbruch ≤ 12 h</th><th>davon Gewinner</th><th>davon Stop</th></tr>${alRow('mit Verdichtung',S.al)}${alRow('gleiche Lage, ohne',S.base)}</table></div>
-    <div class="tiny muted" style="margin-top:6px;line-height:1.5">Fälle: Kurs presst unter dem 48h-Hoch, 4H nicht bärisch, ein Fall je Episode. Ausbruch ≤ 12 h = in den nächsten 12 Kerzen schließt eine Kerze über dem Hoch. ${esc(alTxt)}</div></div>
+    <div class="tiny muted" style="margin-top:6px;line-height:1.5">Fälle: Kurs presst unter dem 48h-Hoch, 4H nicht bärisch, ein Fall je Episode. Ausbruch ≤ 12 h = in den nächsten 12 Kerzen schließt eine Kerze über dem Hoch (Anteil der Fälle). „davon“ = Anteil dieser Ausbrüche. ${esc(alTxt)}</div></div>
    <div class="panel"><div class="lbl">Je Coin – erfasste Gewinner-Ausbrüche</div><div class="twrap"><table class="t"><tr><th></th><th>Ausbr.</th><th>Gew.</th><th>A/B/C</th><th>mit D/E</th><th>gewarnt</th></tr>
     ${per.map(p=>{const w=p.rows.filter(r=>r.res==='win');return`<tr><td>${p.coin.short}</td><td>${p.rows.length}</td><td>${w.length}</td><td>${w.filter(r=>r.capOld).length}</td><td>${w.filter(r=>r.capNew).length}</td><td>${w.filter(r=>r.warned).length}</td></tr>`;}).join('')}</table></div></div>
    <div class="panel"><div class="lbl">Letzte verpasste Gewinner-Ausbrüche (mit D/E)</div>
