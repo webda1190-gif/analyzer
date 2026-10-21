@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#f3f5fa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Crypto Analyzer Pro v14</title>
-<!-- v14 · September 2026 · Setup-Engine (Regime → Setup → Trigger → Risiko) · identische Logik live & Backtest -->
+<title>Crypto Analyzer Pro v15</title>
+<!-- v15 · Oktober 2026 · + Setup D (Ausbruchs-Einstieg) · + Setup E (Verdichtungs-Vorwarnung) · + Ausbruch-Check · identische Logik live & Backtest -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -130,7 +130,7 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
   <div class="head">
     <div>
       <div class="h-sub">Binance Spot · Long only · 1H / 4H / 1D</div>
-      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v14</span></div>
+      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v15</span></div>
       <div class="h-desc" id="statusLine">Lade Marktdaten …</div>
     </div>
     <div style="display:flex;gap:6px">
@@ -160,7 +160,7 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
     <div class="lbl">Abgeschlossenen Trade manuell erfassen</div>
     <div class="fgrid">
       <div class="field"><label class="fl">Coin</label><select id="jCoin"></select></div>
-      <div class="field"><label class="fl">Setup</label><select id="jSetup"><option value="A">A · Trend-Pullback</option><option value="B">B · Breakout-Retest</option><option value="C">C · RSI-Divergenz</option><option value="M">Manuell</option></select></div>
+      <div class="field"><label class="fl">Setup</label><select id="jSetup"><option value="A">A · Trend-Pullback</option><option value="B">B · Breakout-Retest</option><option value="C">C · RSI-Divergenz</option><option value="D">D · Momentum-Breakout</option><option value="M">Manuell</option></select></div>
       <div class="field"><label class="fl">Entry ($)</label><input id="jEntry" type="number" inputmode="decimal" step="any"></div>
       <div class="field"><label class="fl">Exit ($)</label><input id="jExit" type="number" inputmode="decimal" step="any"></div>
       <div class="field"><label class="fl">Position (USDC)</label><input id="jSize" type="number" inputmode="decimal" step="any"></div>
@@ -178,10 +178,14 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
   <div class="panel">
     <div class="fgrid">
       <div class="field"><label class="fl">Umfang</label><select id="btScope"><option value="ALL">Alle 5 Coins (Portfolio)</option></select></div>
-      <div class="field"><label class="fl">Zeitraum</label><select id="btLen"><option value="2">~83 Tage</option><option value="3">~125 Tage</option><option value="1">~41 Tage</option></select></div>
+      <div class="field"><label class="fl">Zeitraum</label><select id="btLen"><option value="2">~83 Tage</option><option value="3">~125 Tage</option><option value="5">~208 Tage</option><option value="1">~41 Tage</option></select></div>
     </div>
-    <div class="tiny muted" style="margin-top:8px;line-height:1.5">Einstieg zum Open der Folgekerze · Gebühren je Seite laut ⚙️ · bei gleicher Kerze zählt der Stop zuerst (konservativ) · 50 % bei TP1, danach Stop auf Einstand · Zeitstop · Portfolio-Limit gleichzeitiger Positionen. News, Fear &amp; Greed und Funding sind historisch nicht enthalten.</div>
+    <div class="tiny muted" style="margin-top:8px;line-height:1.5">Einstieg zum Open der Folgekerze · Gebühren je Seite laut ⚙️ · bei gleicher Kerze zählt der Stop zuerst (konservativ) · 50 % bei TP1, danach Stop auf Einstand · Zeitstop · Portfolio-Limit gleichzeitiger Positionen. News, Fear &amp; Greed und Funding sind historisch nicht enthalten. ~208 Tage gibt es nur mit Binance-Daten (CryptoCompare liefert höchstens ~83 Tage).</div>
   </div>
+  <div class="panel">
+    <div class="row" style="align-items:flex-start;gap:10px"><div><div class="lbl" style="margin:0">Ausbruch-Check</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Zählt, wie viele Ausbrüche die App erfasst und wie viele sie verpasst – mit denselben Funktionen wie die Live-Signale, auf den echten Kursen. Umfang und Zeitraum von oben.</div></div><button class="btn" id="boBtn">▶ PRÜFEN</button></div>
+  </div>
+  <div id="boOut"></div>
   <div id="btOut"></div>
 </section>
 <script>
@@ -194,8 +198,8 @@ const COINS=[
   {sym:'BNBUSDC',alt:'BNBUSDT',cc:'BNB',fut:'BNBUSDT',name:'BNB',short:'BNB',color:'#D9A400'},
   {sym:'LINKUSDC',alt:'LINKUSDT',cc:'LINK',fut:'LINKUSDT',name:'Chainlink',short:'LINK',color:'#2A5ADA'},
 ];
-const SETUP_NAMES={A:'Trend-Pullback',B:'Breakout-Retest',C:'RSI-Divergenz',M:'Manuell'};
-const CFG_DEF={posSize:1150,feePct:0.1,minQ:60,minRR:1.5,maxSlPct:5,maxPos:2,timeStopH:48,setA:true,setB:true,setC:true};
+const SETUP_NAMES={A:'Trend-Pullback',B:'Breakout-Retest',C:'RSI-Divergenz',D:'Momentum-Breakout',E:'Verdichtung',M:'Manuell'};
+const CFG_DEF={posSize:1150,feePct:0.1,minQ:60,minRR:1.5,maxSlPct:5,maxPos:2,timeStopH:48,setA:true,setB:true,setC:true,setD:false,setE:true};
 const IV={'1h':3600000,'4h':14400000,'1d':86400000};
 const BN_HOSTS=['https://data-api.binance.vision/api/v3','https://api.binance.com/api/v3'];
 const CC_BASE='https://min-api.cryptocompare.com/data';
@@ -210,7 +214,7 @@ const DATA={},CTX={},RES={};
 const MKT={fng:null,fngLabel:'',fngPrev:null,funding:{}};
 let EXI={},hostOrder=[...BN_HOSTS];
 const BN_KEY='ca_bn_block';   // Binance im Browser gesperrt → 24 h direkt CryptoCompare nutzen
-let busy=false,btBusy=false,lastFetch=0,bnDownUntil=+lsGet(BN_KEY,0)||0,bnFailRound=false,prevBuys=null,BTCACHE=null;
+let busy=false,btBusy=false,lastFetch=0,bnDownUntil=+lsGet(BN_KEY,0)||0,bnFailRound=false,prevBuys=null,prevWarn=null,BTCACHE=null;
 const UI={open:{},tab:{}};
 
 /* ════════════════ HILFSFUNKTIONEN ════════════════ */
@@ -338,6 +342,20 @@ function adxS(h,l,c,p=14){
 function pivotsS(h,l,L,R){const n=h.length,ph=[],pl=[];for(let i=L;i<n-R;i++){let isH=true,isL=true;for(let j=i-L;j<=i+R&&(isH||isL);j++){if(j===i)continue;if(j<i){if(h[j]>h[i])isH=false;if(l[j]<l[i])isL=false;}else{if(h[j]>=h[i])isH=false;if(l[j]<=l[i])isL=false;}}if(isH)ph.push(i);if(isL)pl.push(i);}return{ph,pl};}
 /* für jede 1H-Kerze: letzte höhere-TF-Kerze, die zu diesem Zeitpunkt bereits GESCHLOSSEN war */
 function alignIdx(src,dst){const out=new Int32Array(src.n).fill(-1);let j=-1;for(let i=0;i<src.n;i++){while(j+1<dst.n&&dst.T[j+1]<=src.T[i])j++;out[i]=j;}return out;}
+/* ── Ausbruchs-Hilfen (O(n)): 48-Kerzen-Hoch, Ausbruchs-Schluss, Verdichtung ── */
+function rollMaxPrev(a,w){const n=a.length,o=new Array(n).fill(null);for(let i=w;i<n;i++){let m=-Infinity;for(let j=i-w;j<i;j++)if(a[j]>m)m=a[j];o[i]=m;}return o;}
+/* Verdichtung: Bollinger-Bandbreite im Perzentil der letzten 120 Kerzen (0 = so eng wie nie) + ATR relativ zum Median der letzten 100 */
+function squeezeSeries(X){
+  const n=X.n,bbw=new Array(n).fill(null),sqz=new Array(n).fill(null),atrR=new Array(n).fill(null);
+  for(let i=0;i<n;i++)if(X.bb.mid[i]&&X.bb.up[i]!=null)bbw[i]=(X.bb.up[i]-X.bb.lo[i])/X.bb.mid[i];
+  for(let i=120;i<n;i++){
+    if(bbw[i]!=null){let lower=0,cnt=0;for(let j=i-120;j<i;j++)if(bbw[j]!=null){cnt++;if(bbw[j]<bbw[i])lower++;}if(cnt>=60)sqz[i]=lower/cnt;}
+    if(X.atr[i]!=null){const w=[];for(let j=i-100;j<i;j++)if(X.atr[j]!=null)w.push(X.atr[j]);if(w.length>=50){w.sort((a,b)=>a-b);atrR[i]=X.atr[i]/w[w.length>>1];}}
+  }
+  X.bbw=bbw;X.sqz=sqz;X.atrR=atrR;
+}
+/* Ausbruchs-Serien für 1H: 48-Kerzen-Hoch (ohne die aktuelle Kerze) · Ausbruchs-Schluss = Close > Hoch + 0,1 ATR · Verdichtung */
+function addBO(X){X.hh48=rollMaxPrev(X.h,48);X.brk=X.c.map((cv,i)=>X.hh48[i]!=null&&X.atr[i]!=null&&cv>X.hh48[i]+0.1*X.atr[i]);squeezeSeries(X);}
 function buildTF(s,L,R){
   const X={t:s.t,T:s.T,o:s.o,h:s.h,l:s.l,c:s.c,v:s.v,n:s.c.length,R};
   X.ema9=ema(s.c,9);X.ema21=ema(s.c,21);X.ema50=ema(s.c,50);X.ema200=ema(s.c,200);
@@ -346,7 +364,7 @@ function buildTF(s,L,R){
   return X;
 }
 function buildCtx(raw,btc){
-  const h1=buildTF(raw.h1,3,3),h4=buildTF(raw.h4,2,2),d1=buildTF(raw.d1,2,2);
+  const h1=buildTF(raw.h1,3,3),h4=buildTF(raw.h4,2,2),d1=buildTF(raw.d1,2,2);addBO(h1);
   const ctx={h1,h4,d1,a4:alignIdx(h1,h4),aD:alignIdx(h1,d1),src:raw.src,bsym:raw.bsym};
   if(btc){ctx.btc4=btc.h4;ctx.aB=alignIdx(h1,btc.h4);}
   return ctx;
@@ -368,7 +386,22 @@ function regDAt(X,k){
   const c=X.c[k],a50=c>X.ema50[k],a200=X.ema200[k]!=null?c>X.ema200[k]:null;
   return{state:(a50&&a200!==false)?'bull':(!a50&&a200===false)?'bear':'neutral',a50,a200,e50:X.ema50[k],e200:X.ema200[k]};
 }
-function detectSetups(ctx,e){
+/* Verdichtungs-Test an Kerze e: Kurs presst unter dem 48h-Hoch, Schwankung auf Minimum, höhere Tiefs.
+   base = Lage-Bedingungen, full = base + Volatilitäts-Kompression (Bandbreite im untersten Viertel, ATR ≤ 90 % des Normalwerts) */
+function squeezeAt(ctx,e){
+  const X=ctx.h1;if(e<WARM||e>=X.n||X.sqz[e]==null||X.atrR[e]==null||!X.atr[e]||X.ema50[e]==null)return null;
+  const A=X.atr[e],c=X.c,h=X.h,l=X.l;
+  let R=-Infinity,L=Infinity,m12=Infinity,M12=-Infinity,lowR=Infinity,lowP=Infinity;
+  for(let j=e-47;j<=e;j++){if(h[j]>R)R=h[j];if(l[j]<L)L=l[j];}
+  for(let j=e-11;j<=e;j++){if(l[j]<m12)m12=l[j];if(h[j]>M12)M12=h[j];}
+  for(let j=e-5;j<=e;j++)if(l[j]<lowR)lowR=l[j];
+  for(let j=e-11;j<=e-6;j++)if(l[j]<lowP)lowP=l[j];
+  const dist=(R-c[e])/A,pos=(c[e]-L)/Math.max(R-L,1e-12),coil=(M12-m12)/A;
+  let rb=false;for(let j=e-5;j<=e;j++)if(X.brk[j]){rb=true;break;}                 // „vor dem Ausbruch“ – nicht danach
+  const base=!rb&&dist<=1.5&&pos>=0.6&&lowR>=lowP-0.1*A&&coil<=4.5&&c[e]>=X.ema50[e]-0.3*A;
+  return{R,L,A,m12,dist,pos,coil,base,sq:X.sqz[e],atrR:X.atrR[e],full:base&&X.sqz[e]<=0.25&&X.atrR[e]<=0.9};
+}
+function detectSetups(ctx,e,opt){
   const X=ctx.h1;if(e<WARM||e>=X.n)return[];
   const c=X.c,o=X.o,h=X.h,l=X.l,A=X.atr[e],hist=X.macd.hist;
   if(!A||hist[e]==null||hist[e-1]==null||X.ema200[e]==null)return[];
@@ -419,6 +452,27 @@ function detectSetups(ctx,e){
       }
     }
   }
+  /* D · Momentum-Breakout: erster Schluss über dem 48h-Hoch mit Volumen und starker Kerze.
+     Direkter Einstieg – kein Rücktest nötig (B kann Ausbrüche ohne Rücktest prinzipbedingt nicht handeln) */
+  if(CFG.setD&&X.brk[e]){
+    let fresh=true;for(let j=e-6;j<e;j++)if(X.brk[j]){fresh=false;break;}
+    const R=X.hh48[e],reach=(c[e]-R)/A,vr=X.vsma[e-1]?X.v[e]/X.vsma[e-1]:0;
+    if(fresh&&bull&&vr>=1.5&&closePos>=0.6&&body/rng>=0.45&&rng<=3*A&&reach<=1.5){
+      let touches=0,last=-9,L=Infinity,sq=1;
+      for(let j=e-48;j<e;j++){if(h[j]>=R-0.35*A&&j-last>=3){touches++;last=j;}if(l[j]<L)L=l[j];}
+      for(let j=e-12;j<e;j++)if(X.sqz[j]!=null&&X.sqz[j]<sq)sq=X.sqz[j];
+      out.push({type:'D',name:SETUP_NAMES.D,trigger:true,slRef:R-0.25*A,trigLvl:R,level:R,barHigh:h[e],rangeH:R-L,touches,sq,reach,pattern,
+        desc:`Ausbruch über ${fp(R)} mit ${nf(vr,1)}× Volumen${touches>=2?`, Niveau ${touches}× getestet`:''}${sq<=0.25?', vorher verdichtet':''} – direkter Einstieg ohne Rücktest`});
+    }
+  }
+  /* E · Verdichtung (Vorwarnung, KEIN Kaufsignal): Kurs presst unter dem 48h-Hoch, Volatilität auf Minimum.
+     Sagt „gleich bewegt sich etwas“, nicht „wohin“ – gekauft wird erst beim Ausbruch (Setup D) */
+  if(CFG.setE&&!(opt&&opt.noWatch)){
+    const q=squeezeAt(ctx,e);
+    if(q&&q.full)out.push({type:'E',name:SETUP_NAMES.E,trigger:false,slRef:q.R-0.25*A,trigLvl:q.R+0.1*A,level:q.R,low12:q.m12,pattern:null,
+      desc:`Verdichtung unter ${fp(q.R)}`});
+  }
+
   return out;
 }
 function fibZone(X,e,pl){
@@ -454,7 +508,7 @@ function makePlan(ctx,e,s,entry,lv,sym,reg4){
   let sl=Math.min(s.slRef-0.25*A,entry-1.0*A);
   if(sym)sl=roundP(sl,sym,'down');
   const risk=entry-sl;if(!(risk>0)||!isFinite(risk))return null;
-  const buf=0.15*A,up=lv.res.filter(z=>z.p>entry+0.3*A),dist=z=>(z.p-buf-entry)/risk;
+  const buf=0.15*A,own=z=>s.type==='D'&&z.n===1&&Math.abs(z.p-s.barHigh)<=s.barHigh*1e-9,up=lv.res.filter(z=>z.p>entry+0.3*A&&!own(z)),dist=z=>(z.p-buf-entry)/risk;
   // Im bestätigten 4H-Aufwärtstrend ist das Hoch des laufenden Trendbeins ein Ziel, keine Wand
   let legHi=-Infinity;for(let j=Math.max(0,e-47);j<=e;j++)legHi=Math.max(legHi,X.h[j]);
   const trendLeg=reg4&&reg4.state==='bull'&&s.type!=='C';
@@ -488,7 +542,7 @@ function quality(ctx,e,s,plan,lv,reg4,regD,btc4,isAlt){
   const hi=X.macd.hist;
   if(hi[e]>0&&hi[e-1]<=0)add(10,'MACD-Histogramm kreuzt über 0');else if(hi[e]>hi[e-1])add(5,'MACD-Momentum dreht hoch');
   const r=X.rsi[e];
-  if(r>=45&&r<=65)add(5,`RSI ${nf(r,0)} – Momentum ohne Überhitzung`);else if(r>70)add(-5,`RSI ${nf(r,0)} überhitzt`);
+  if(r>=45&&r<=65)add(5,`RSI ${nf(r,0)} – Momentum ohne Überhitzung`);else if(r>(s.type==='D'?78:70))add(-5,`RSI ${nf(r,0)} überhitzt`);
   if(s.pattern==='Bullish Engulfing'||s.pattern==='Hammer')add(5,`Kerzenmuster: ${s.pattern}`);
   const vr=X.vsma[e-1]?X.v[e]/X.vsma[e-1]:null;
   if(vr!=null){if(vr>=1.8)add(15,`Volumen ${nf(vr,1)}× Durchschnitt`);else if(vr>=1.2)add(8,`Volumen ${nf(vr,1)}× Durchschnitt`);else if(vr<0.7)add(-5,`Schwaches Volumen (${nf(vr,1)}×)`);}
@@ -497,7 +551,7 @@ function quality(ctx,e,s,plan,lv,reg4,regD,btc4,isAlt){
     if(plan.hurdle)add(-5,`Zwischenhoch ${fp(plan.hurdle.p)} muss noch überwunden werden`);
   }
   if(isAlt&&btc4&&btc4.state==='bull')add(5,'BTC 4H bullisch (Rückenwind)');
-  if((X.c[e]-X.ema21[e])/A>2)add(-10,'Kurs weit über EMA21 (Hinterherlaufen)');
+  if((X.c[e]-X.ema21[e])/A>(s.type==='D'?3.5:2))add(-10,'Kurs weit über EMA21 (Hinterherlaufen)');
   if(A/X.c[e]*100>2.5)add(-5,'Extreme Volatilität (ATR > 2,5 %)');
   return{q:clamp(Math.round(q),0,100),parts};
 }
@@ -518,8 +572,8 @@ function gates(ctx,e,s,plan,reg4,regD,btc4,isAlt){
   else{const ok=plan.rrB>=CFG.minRR&&plan.rr1>=0.8;
     G.push({k:'rr',s:ok?'ok':'fail',t:`${ok?'':'Chance/Risiko zu klein: '}Ø 1:${nf(plan.rrB,1)} netto (TP1 1:${nf(plan.rr1,1)} · TP2 1:${nf(plan.rr2,1)} · min. Ø 1:${nf(CFG.minRR,1)})`});}
   G.push({k:'sl',s:plan.slPct<=CFG.maxSlPct?'ok':'fail',t:`Stop-Distanz ${nf(plan.slPct,1)} % (max. ${nf(CFG.maxSlPct,1)} %)`});
-  const ext=(plan.entry-X.ema21[e])/A;
-  G.push({k:'ext',s:ext<=2.5?'ok':'fail',t:ext<=2.5?`Einstieg nah am Wert (${nf(ext,1)} ATR über EMA21)`:`Überdehnt: ${nf(ext,1)} ATR über EMA21`});
+  const ext=(plan.entry-X.ema21[e])/A,xm=s.type==='D'?4:2.5;
+  G.push({k:'ext',s:ext<=xm?'ok':'fail',t:ext<=xm?`Einstieg nah am Wert (${nf(ext,1)} ATR über EMA21)`:`Überdehnt: ${nf(ext,1)} ATR über EMA21`});
   return G;
 }
 function lastClosed(X){const now=Date.now();let e=X.n-1;while(e>0&&X.T[e]>now)e--;return e;}
@@ -528,6 +582,15 @@ function noSetupHint(X,e){
   if(X.ema21[e]<X.ema50[e])return'1H-Struktur bärisch (EMA21 unter EMA50) – kein Long-Setup';
   if(ext>1.5||r>66)return`Überdehnt (RSI ${nf(r,0)}) – Rücksetzer Richtung EMA21 ${fp(X.ema21[e])} abwarten`;
   return'Aufwärtsstruktur ohne Rücksetzer oder Trigger – abwarten';
+}
+/* Läuft gerade ein Ausbruch? (frischer 1H-Schluss über dem 48h-Hoch in den letzten 3 Kerzen – oder die laufende Kerze liegt schon darüber) */
+function brkInfo(X,e,cur){
+  if(!X.brk||!X.atr[e])return null;
+  const fresh=k=>{for(let j=k-6;j<k;j++)if(X.brk[j])return false;return true;};
+  for(let d=0;d<=2;d++){const k=e-d;if(k>=0&&X.brk[k]&&fresh(k))return{k,age:d,R:X.hh48[k],run:false};}
+  const n=X.n-1;
+  if(n>e&&X.brk[n]&&fresh(n))return{k:n,age:0,R:X.hh48[n],run:true};
+  return null;
 }
 function analyzeLive(coin){
   const ctx=CTX[coin.sym];if(!ctx)return null;
@@ -550,8 +613,9 @@ function analyzeLive(coin){
       const entry=s.trigger?cur:Math.max(s.trigLvl,cur);
       const plan=makePlan(ctx,e,s,entry,lv,coin.sym,reg4);if(!plan)continue;
       const G=gates(ctx,e,s,plan,reg4,regD,btc4,isAlt);
+      if(s.type==='E'&&G.some(g=>g.s==='fail'&&g.k!=='trig'))continue;
       const Q=quality(ctx,es,s,plan,lv,reg4,regD,btc4,isAlt);
-      const qF=clamp(Q.q+cx.pts,0,100),rank=(s.trigger&&valid?1000:0)+qF-d*3;
+      const qF=clamp(Q.q+cx.pts,0,100),rank=(s.trigger&&valid?(G.some(g=>g.s==='fail'&&g.k!=='trig')?1000:2000):0)+qF-d*3;
       if(!best||rank>best.rank)best={s,es,age:d,valid,why,plan,G,Q,qF,rank};
     }
   }
@@ -569,20 +633,22 @@ function analyzeLive(coin){
     if(hard){verdict='NO';reason=hard.t;}
     else if(!s.trigger){
       if(risk){verdict='NO';reason=`${s.name} in Bildung, aber: ${rtxt(risk)}`;}
-      else{verdict='WATCH';reason=`${s.name} bildet sich – Kauf erst bei 1H-Schluss über ${fp(s.trigLvl)}`;}
+      else{verdict='WATCH';reason=s.type==='E'?`Verdichtung unter ${fp(s.level)} – Ausbruch möglich, Richtung offen. Kauf erst bei 1H-Schluss über ${fp(s.level)} mit Volumen`:`${s.name} bildet sich – Kauf erst bei 1H-Schluss über ${fp(s.trigLvl)}`;}
     }
     else if(!best.valid){verdict='NO';reason=best.why;}
     else if(risk){verdict='NO';reason=rtxt(risk);}
     else if(best.qF<CFG.minQ){verdict='WATCH';reason=`${s.name}: Signal da, aber zu wenig Konfluenz (Q ${best.qF} < ${CFG.minQ})`;}
     else{verdict='BUY';reason=`${s.name}: ${s.desc}${best.age?` · Signal vor ${best.age} h`:''}`;}
   }
-  return{coin,ctx,X,e,cur,chg,reg4,regD,btc4,lv,cx,best,verdict,reason,src:ctx.src,bsym:ctx.bsym};
+  const live=brkInfo(X,e,cur);
+  if(live&&verdict!=='BUY')reason=`⚡ ${live.run?`Kurs über dem 48h-Hoch ${fp(live.R)} – Schluss der 1H-Kerze abwarten`:`Ausbruch über ${fp(live.R)}${live.age?` (vor ${live.age} h)`:''}`}${CFG.setD?'':' · Ausbruchs-Einstieg (D) ist aus'} · ${reason}`;
+  return{coin,ctx,X,e,cur,chg,reg4,regD,btc4,lv,cx,best,verdict,reason,live,src:ctx.src,bsym:ctx.bsym};
 }
 /* Backtest: dieselben Funktionen, jede Kerze nur mit Daten bis zu ihrem Schluss */
 function scanSignals(ctx,isAlt){
   const X=ctx.h1,sig=new Array(X.n).fill(null);
   for(let e=WARM;e<X.n-1;e++){
-    const ss=detectSetups(ctx,e).filter(s=>s.trigger);if(!ss.length)continue;
+    const ss=detectSetups(ctx,e,{noWatch:true}).filter(s=>s.trigger);if(!ss.length)continue;
     const reg4=reg4At(ctx.h4,ctx.a4[e]),regD=regDAt(ctx.d1,ctx.aD[e]),btc4=isAlt&&ctx.btc4?reg4At(ctx.btc4,ctx.aB[e]):null;
     const lv=levelsAt(ctx,e);let best=null;
     for(const s of ss){
@@ -746,15 +812,20 @@ function analyzeAll(){
 }
 function notifyNewBuys(){
   const now=new Set(COINS.filter(c=>RES[c.sym]&&RES[c.sym].verdict==='BUY').map(c=>c.short));
+  let buyToast=false;
   if(prevBuys){
     const fresh=[...now].filter(x=>!prevBuys.has(x));
     if(fresh.length){
+      buyToast=true;
       const msg=`Kaufsignal: ${fresh.join(', ')}`;toast('🔔 '+msg,6000);
       try{if(navigator.vibrate)navigator.vibrate([150,80,150]);}catch(e){}
       try{if('Notification' in window&&Notification.permission==='granted')new Notification('Crypto Analyzer',{body:msg});}catch(e){}
     }
   }
   prevBuys=now;
+  const warn=new Set(COINS.filter(c=>{const r=RES[c.sym];return r&&r.verdict==='WATCH'&&r.best&&r.best.s.type==='E';}).map(c=>c.short));
+  if(prevWarn&&!buyToast){const fw=[...warn].filter(x=>!prevWarn.has(x));if(fw.length)toast(`👁 Verdichtung: ${fw.join(', ')} – Ausbruch möglich (noch kein Kauf)`,5000);}
+  prevWarn=warn;
 }
 
 /* ════════════════ DARSTELLUNG ════════════════ */
@@ -830,7 +901,7 @@ function cardHTML(r){
     <div class="row" style="align-items:flex-start">
      <div class="coin"><div class="icon" style="background:${c.color}">${c.short}</div>
       <div><div class="cname">${c.name}</div><div><span class="cprice num">${fp(r.cur)}</span> <span class="small ${r.chg>=0?'g':'r'}" style="font-weight:800">${sg(r.chg,2)} %</span></div></div></div>
-     <div style="text-align:right"><span class="badge ${vc}">${vt}</span><div class="qline">${q!=null?`Q ${q}/100 · ${grade}`:grade}</div></div>
+     <div style="text-align:right"><span class="badge ${vc}">${vt}</span><div class="qline">${b&&b.s.type==='E'&&r.verdict==='WATCH'?'Vorwarnung · noch kein Kaufsignal':q!=null?`Q ${q}/100 · ${grade}`:grade}</div></div>
     </div>
     <div class="reason">${esc(r.reason)}</div>
     <div class="tiles">${tilesOf(r).map(x=>`<div class="tile st-${x.s}"><div class="k">${x.k}</div><div class="v">${x.v}</div></div>`).join('')}</div>
@@ -851,15 +922,16 @@ function planHTML(r,limited){
   const lossSL=qty*(p.entry-p.sl)+feeIn+qty*p.sl*f;
   const half=tp=>qty/2*(tp-p.entry)-qty/2*p.entry*f-qty/2*tp*f;
   const g1=half(p.tp1),g2=half(p.tp2),be=roundP(p.entry*(1+2*f),sym,'up'),pct=x=>(x/p.entry-1)*100;
-  const slWhat=b.s.type==='B'?'Retest-Tief':b.s.type==='C'?'Divergenz-Tief':'Pullback-Tief';
+  const slWhat=b.s.type==='B'?'Retest-Tief':b.s.type==='C'?'Divergenz-Tief':b.s.type==='D'?'Ausbruchsniveau':'Pullback-Tief',slAtr=b.s.type==='D'?'0,5':'0,25';
   const minN=EXI[sym]&&EXI[sym].minNot;
   return`<div class="plan">
    ${limited?`<div class="tiny a" style="font-weight:800;margin-bottom:6px">⚠️ ${esc(r.reason)}</div>`:''}
    <div class="lbl g">Order-Plan · Binance Spot · ${esc(b.s.name)}</div>
+   ${b.s.type==='D'?'<div class="tiny a" style="font-weight:800;margin-bottom:6px">⚡ Ausbruchs-Einstieg: zeitnah kaufen. Ist der Kurs schon zu weit gelaufen, zeigt die App „nicht hinterherkaufen“.</div>':''}
    <div class="prow"><div class="pk">Kauf (Market)</div><div class="pv" onclick="copyTxt('${ordP(p.entry,sym)}')">${ordP(p.entry,sym)}</div>
     <div class="pd">Menge <b>${qty} ${c.short}</b> ≈ ${usd(notional,0)} · Gebühr ≈ ${usd(feeIn)}${minN&&notional<minN?' · ⚠️ unter Mindestorder':''}</div></div>
    <div class="prow"><div class="pk r">Stop-Loss</div><div class="pv r" onclick="copyTxt('${ordP(p.sl,sym)}')">${ordP(p.sl,sym)}</div>
-    <div class="pd">${sg(pct(p.sl))} % · max. Verlust <b class="r">${usd(-lossSL)}</b> inkl. Gebühren · unter ${slWhat} − 0,25 ATR</div></div>
+    <div class="pd">${sg(pct(p.sl))} % · max. Verlust <b class="r">${usd(-lossSL)}</b> inkl. Gebühren · unter ${slWhat} − ${slAtr} ATR</div></div>
    <div class="prow"><div class="pk g">TP1 · 50 %</div><div class="pv g" onclick="copyTxt('${ordP(p.tp1,sym)}')">${ordP(p.tp1,sym)}</div>
     <div class="pd">${sg(pct(p.tp1))} % · <b class="g">+${usd(g1)}</b> · R:R 1:${nf(p.rr1,1)} · ${esc(p.tp1Src)}${p.hurdle?` · Zwischenhoch bei ${fp(p.hurdle.p)}`:''}</div></div>
    <div class="prow"><div class="pk b">TP2 · 50 %</div><div class="pv b" onclick="copyTxt('${ordP(p.tp2,sym)}')">${ordP(p.tp2,sym)}</div>
@@ -872,6 +944,10 @@ function planHTML(r,limited){
 }
 function watchHTML(r){
   const b=r.best;if(!b)return'';const p=b.plan,s=b.s;
+  if(s.type==='E')return`<div class="plan watch"><div class="lbl a">Vorwarnung · Verdichtung</div>
+   <div class="small" style="line-height:1.55">Der Kurs presst unter dem 48h-Hoch <b>${fp(s.level)}</b>, die Schwankung ist auf einem Tiefpunkt. Das kündigt eine Bewegung an – <b>die Richtung ist offen</b>.<br>
+   Kauf nur bei <b>1H-Schluss über ${fp(s.level)}</b> mit Volumen ≥ 1,5× und kräftiger grüner Kerze${CFG.setD?' (Setup D meldet das automatisch)':' – Setup D ist in ⚙️ aus, du entscheidest selbst'}. Dann Stop ≈ <b class="r">${fp(p.sl)}</b> (${sg((p.sl/p.entry-1)*100)} %) · TP1 ≈ <b class="g">${fp(p.tp1)}</b> · TP2 ≈ <b class="b">${fp(p.tp2)}</b> · R:R Ø ≈ 1:${nf(p.rrB,1)}</div>
+   <div class="tiny muted" style="margin-top:4px">Tipp: Preisalarm bei Binance auf ${ordP(s.trigLvl,r.coin.sym)} setzen. Fällt der Kurs unter ${fp(s.low12)} (12-h-Tief), ist die Verdichtung hinfällig.</div></div>`;
   if(!s.trigger)return`<div class="plan watch"><div class="lbl a">Setup in Bildung · ${esc(s.name)}</div>
    <div class="small" style="line-height:1.55">Kauf-Trigger: <b>1H-Kerze schließt über ${fp(s.trigLvl)}</b> (grüne Kerze, Schluss über dem Hoch der Vorkerze, Momentum dreht).<br>
    Stop dann ≈ <b class="r">${fp(p.sl)}</b> (${sg((p.sl/p.entry-1)*100)} %) · TP1 ≈ <b class="g">${fp(p.tp1)}</b> · TP2 ≈ <b class="b">${fp(p.tp2)}</b> · R:R Ø ≈ 1:${nf(p.rrB,1)} · Q ≈ ${b.qF}</div>
@@ -894,7 +970,7 @@ function detailsHTML(r,tab){
       {s:r.reg4.state==='bull'?'ok':r.reg4.state==='bear'?'fail':'warn',t:`4H-Trend ${LAB[r.reg4.state]}`},
       {s:r.regD.a200===false?'warn':r.regD.a200?'ok':'warn',t:r.regD.a200===false?'1D unter EMA200':r.regD.a200?'1D über EMA200':'1D-Trend k. A.'},
       ...(r.btc4?[{s:r.btc4.state==='bear'?'fail':r.btc4.state==='bull'?'ok':'warn',t:`BTC 4H ${LAB[r.btc4.state]}`}]:[]),
-      {s:'fail',t:'Kein Setup (A · B · C) aktiv'}];
+      {s:'fail',t:'Kein Setup (A · B · C · D · E) aktiv'}];
     body=G.map(g=>`<div class="chk ${g.s}"><span>${ICO[g.s]}</span><span>${esc(g.t)}</span></div>`).join('')
       +`<div class="lbl" style="margin-top:10px">Kontext (live)</div>`
       +r.cx.parts.map(p=>`<div class="chk ${p.s}"><span>${ICO[p.s]}</span><span>${esc(p.t)}${p.p?` (${p.p>0?'+':''}${p.p} Q)`:''}</span></div>`).join('');
@@ -957,10 +1033,10 @@ function renderCfg(){
     ${fld('minQ','Min. Qualität (0–100)')}${fld('minRR','Min. Ø R:R netto')}
     ${fld('maxSlPct','Max. Stop-Distanz (%)')}${fld('maxPos','Max. offene Positionen')}
     ${fld('timeStopH','Zeitstop (Stunden)')}
-    <div class="field"><label class="fl">Setups aktiv</label><div style="display:flex;gap:12px;padding:9px 0">${['A','B','C'].map(k=>`<label style="display:flex;gap:4px;align-items:center;font-size:13px;font-weight:700"><input type="checkbox" id="cfg_set${k}" ${CFG['set'+k]?'checked':''}> ${k}</label>`).join('')}</div></div>
+    <div class="field"><label class="fl">Setups aktiv</label><div style="display:flex;flex-wrap:wrap;gap:6px 12px;padding:9px 0">${['A','B','C','D','E'].map(k=>`<label style="display:flex;gap:4px;align-items:center;font-size:13px;font-weight:700"><input type="checkbox" id="cfg_set${k}" ${CFG['set'+k]?'checked':''}> ${k}</label>`).join('')}</div></div>
    </div>
    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn green" onclick="saveCfgUI()">Speichern</button><button class="btn ghost" onclick="resetCfg()">Standard</button><button class="btn ghost" onclick="askNotify()">🔔 Alarme</button></div>
-   <div class="tiny muted" style="margin-top:8px;line-height:1.5">A = Trend-Pullback · B = Breakout-Retest · C = RSI-Divergenz (Gegentrend). Gebühr 0,1 % = Binance-Standard (mit BNB-Rabatt 0,075 %). Mindestqualität über den Backtest kalibrieren. Alarme (Einblendung, Vibration) funktionieren nur bei geöffneter Seite – kein Hintergrund-Push.</div>
+   <div class="tiny muted" style="margin-top:8px;line-height:1.5">A = Trend-Pullback · B = Breakout-Retest · C = RSI-Divergenz (Gegentrend) · D = Momentum-Breakout (Einstieg direkt beim Ausbruch – neu und am echten Markt ungeprüft: erst Backtest-Tab → Ausbruch-Check ansehen) · E = Verdichtung (nur Vorwarnung, kein Kauf). Gebühr 0,1 % = Binance-Standard (mit BNB-Rabatt 0,075 %). Mindestqualität über den Backtest kalibrieren. Alarme (Einblendung, Vibration) funktionieren nur bei geöffneter Seite – kein Hintergrund-Push.</div>
    <div class="tiny muted" style="margin-top:8px;line-height:1.5">Datenquelle: ${Date.now()<bnDownUntil?`CryptoCompare – Binance ist in diesem Browser gesperrt (nächster Test ${new Date(bnDownUntil).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})}). <button class="btn small ghost" onclick="retestBinance()">Binance jetzt testen</button>`:'Binance (Fallback CryptoCompare)'}</div>`;
 }
 function retestBinance(){bnDownUntil=0;lsSet(BN_KEY,0);hostOrder=[...BN_HOSTS];BTCACHE=null;$('cfgPanel').style.display='none';fetchAll(true);}
@@ -968,7 +1044,7 @@ function saveCfgUI(){
   const num=(k,a,b)=>{const v=parseFloat(String($('cfg_'+k).value).replace(',','.'));if(isFinite(v))CFG[k]=clamp(v,a,b);};
   num('posSize',10,1e7);num('feePct',0,1);num('minQ',0,100);num('minRR',0.5,10);num('maxSlPct',0.5,20);num('maxPos',1,5);num('timeStopH',4,720);
   CFG.maxPos=Math.round(CFG.maxPos);CFG.minQ=Math.round(CFG.minQ);
-  for(const k of ['A','B','C'])CFG['set'+k]=$('cfg_set'+k).checked;
+  for(const k of ['A','B','C','D','E'])CFG['set'+k]=$('cfg_set'+k).checked;
   lsSet('ca_cfg',CFG);$('cfgPanel').style.display='none';BTCACHE=null;
   analyzeAll();renderAll();toast('⚙️ Gespeichert');
 }
@@ -1121,18 +1197,11 @@ function btStats(tr,weeks){
     dd,fees:tr.reduce((a,t)=>a+t.fees,0),perWeek:weeks>0?n/weeks:0,curve};
 }
 async function runBacktest(){
-  if(btBusy)return;btBusy=true;const out=$('btOut'),btn=$('btBtn');btn.disabled=true;
+  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}btBusy=true;const out=$('btOut'),btn=$('btBtn');btn.disabled=true;
   const scope=$('btScope').value,pages=+$('btLen').value;
   try{
     const coins=scope==='ALL'?COINS:COINS.filter(c=>c.sym===scope);
-    const need=[...new Set(['BTCUSDC',...coins.map(c=>c.sym)])],key=pages+'|'+need.join(',');
-    let raws;
-    if(BTCACHE&&BTCACHE.key===key&&Date.now()-BTCACHE.ts<30*60e3)raws=BTCACHE.raws;
-    else{
-      raws={};let done=0;const prog=()=>{out.innerHTML=`<div class="panel loading">⟳ Lade Historie … ${done}/${need.length}</div>`;};prog();
-      await Promise.all(need.map(async sym=>{raws[sym]=await loadHistory(COINS.find(c=>c.sym===sym),pages);done++;prog();}));
-      BTCACHE={key,raws,ts:Date.now()};
-    }
+    const raws=await getRaws(coins,pages,out);
     out.innerHTML='<div class="panel loading">⟳ Simuliere Strategie …</div>';
     await new Promise(r=>setTimeout(r,20));
     const t0=performance.now(),btc=buildCtx(raws.BTCUSDC,null);
@@ -1199,6 +1268,189 @@ function drawEquity(cv,curve){
 }
 function applyMinQ(th){CFG.minQ=th;lsSet('ca_cfg',CFG);analyzeAll();renderAll();toast(`Min-Qualität auf ${th} gesetzt`);runBacktest();}
 
+/* Historie laden (gemeinsamer Cache für Backtest und Ausbruch-Check, 30 min) */
+async function getRaws(coins,pages,out){
+  const need=[...new Set(['BTCUSDC',...coins.map(c=>c.sym)])],key=pages+'|'+need.join(',');
+  if(BTCACHE&&BTCACHE.key===key&&Date.now()-BTCACHE.ts<30*60e3)return BTCACHE.raws;
+  const raws={};let done=0;const prog=()=>{out.innerHTML=`<div class="panel loading">⟳ Lade Historie … ${done}/${need.length}</div>`;};prog();
+  await Promise.all(need.map(async sym=>{raws[sym]=await loadHistory(COINS.find(c=>c.sym===sym),pages);done++;prog();}));
+  BTCACHE={key,raws,ts:Date.now()};return raws;
+}
+/* ════════════════ AUSBRUCH-CHECK ════════════════
+   Frage: „Verpasst die App Ausbrüche – und lohnt es sich, sie zu handeln?“ Gemessen an den Kursen, mit denselben Funktionen wie die Live-Signale.
+   Ausbruch = erster 1H-Schluss über dem 48-Kerzen-Hoch + 0,1 ATR (danach 6 Kerzen Pause).
+   Gewinner = ab dem Ausbruchs-Schluss werden +2R erreicht, bevor der Stop (Niveau − 0,5 ATR, mind. 1 ATR) fällt – innerhalb 24 h.
+   Erfasst  = die App hätte binnen 12 Kerzen KAUFEN gezeigt (alle Filter + Min-Qualität), Einstieg höchstens 1R über dem Ausbruchs-Schluss.
+   „Bisher“ = A/B/C · „Neu“ = A/B/C + D/E – unabhängig davon, ob D/E in ⚙️ gerade an sind. */
+const BO_WHY={KAUF:'Kaufsignal (KAUFEN)',Q:'Qualität unter Schwelle',EXT:'Überdehnt (Abstand zu EMA21)',SL:'Stop zu weit',RR:'Chance/Risiko zu klein',WALL:'Starker 4H/1D-Widerstand direkt darüber',
+  BTC:'BTC bärisch (Altcoin-Sperre)',REGIME:'4H-Abwärtstrend (Long gesperrt)',NOTRIG:'Setup ohne Trigger',D_RED:'D: Ausbruchs-Kerze nicht grün',D_VOL:'D: Volumen unter 1,5×',
+  D_CANDLE:'D: Kerze zu schwach (Docht/Körper)',D_RANGE:'D: Kerze größer als 3 ATR',D_LATE:'D: Schluss mehr als 1,5 ATR über dem Niveau',NOSETUP:'Kein Setup passt'};
+function boEvents(ctx){
+  const X=ctx.h1,ev=[];
+  for(let b=WARM;b<X.n-25;b++){
+    if(!X.brk[b])continue;
+    let fresh=true;for(let j=b-6;j<b;j++)if(X.brk[j]){fresh=false;break;}
+    if(!fresh)continue;
+    const A=X.atr[b],R=X.hh48[b],c0=X.c[b],sl=Math.min(R-0.5*A,c0-A),risk=c0-sl,tp=c0+2*risk;
+    let res='timeout',mx=0;
+    for(let j=b+1;j<=b+24;j++){
+      if(X.h[j]-c0>mx)mx=X.h[j]-c0;
+      if(res==='timeout'){if(X.l[j]<=sl)res='stop';else if(X.h[j]>=tp)res='win';}     // Stop zuerst (konservativ)
+    }
+    ev.push({b,t:X.t[b],R,A,c0,sl,tp,risk,res,mfe:mx/c0*100});
+  }
+  return ev;
+}
+/* Warum greift Setup D an der Ausbruchs-Kerze nicht? (gleiche Bedingungen wie in detectSetups) */
+function dWhy(ctx,e){
+  const X=ctx.h1,A=X.atr[e],R=X.hh48[e],rng=Math.max(X.h[e]-X.l[e],1e-12),body=Math.abs(X.c[e]-X.o[e]),cp=(X.c[e]-X.l[e])/rng,vr=X.vsma[e-1]?X.v[e]/X.vsma[e-1]:0;
+  if(!(X.c[e]>X.o[e]))return'D_RED';
+  if(vr<1.5)return'D_VOL';
+  if(cp<0.6||body/rng<0.45)return'D_CANDLE';
+  if(rng>3*A)return'D_RANGE';
+  if((X.c[e]-R)/A>1.5)return'D_LATE';
+  return'NOSETUP';
+}
+/* Wie weit kommt die App an Kerze e? (rank: höher = näher am Kaufsignal) – Konfiguration „neu“ muss gesetzt sein */
+function classifyBar(ctx,isAlt,e){
+  const X=ctx.h1,ss=detectSetups(ctx,e,{noWatch:true}),trg=ss.filter(s=>s.trigger);
+  if(!trg.length){const w=X.brk[e]?dWhy(ctx,e):'NOSETUP';return ss.length&&w==='NOSETUP'?{code:'NOTRIG',rank:1}:{code:w,rank:w==='NOSETUP'?0:1};}
+  const reg4=reg4At(ctx.h4,ctx.a4[e]),regD=regDAt(ctx.d1,ctx.aD[e]),btc4=isAlt&&ctx.btc4?reg4At(ctx.btc4,ctx.aB[e]):null,lv=levelsAt(ctx,e);
+  let best={code:'NOSETUP',rank:0};
+  for(const s of trg){
+    const plan=makePlan(ctx,e,s,X.c[e],lv,null,reg4);let c;
+    if(!plan)c={code:'RR',rank:3};
+    else{
+      const f=gates(ctx,e,s,plan,reg4,regD,btc4,isAlt).filter(g=>g.s==='fail').map(g=>g.k);
+      if(f.includes('t4')||f.includes('t1d'))c={code:'REGIME',rank:2};
+      else if(f.includes('btc'))c={code:'BTC',rank:2};
+      else if(f.includes('rr'))c={code:plan.wall?'WALL':'RR',rank:3};
+      else if(f.includes('sl'))c={code:'SL',rank:3};
+      else if(f.includes('ext'))c={code:'EXT',rank:3};
+      else{const Q=quality(ctx,e,s,plan,lv,reg4,regD,btc4,isAlt);c=Q.q>=CFG.minQ?{code:'KAUF',rank:5}:{code:'Q',rank:4};}
+    }
+    if(c.rank>best.rank)best=c;
+  }
+  return best;
+}
+/* Vorwarnung: was folgt auf eine Verdichtung (E) – verglichen mit gleicher Lage OHNE Verdichtung? Nur 4H nicht bärisch, ein Fall je Episode */
+function alertStats(ctx,isAlt,evs){
+  const X=ctx.h1,byB=new Map(evs.map(v=>[v.b,v])),mk=()=>({n:0,brk:0,win:0,stop:0}),AL=mk(),BA=mk();let la=-99,lb=-99;
+  for(let e=WARM;e<X.n-25;e++){
+    const q=squeezeAt(ctx,e);if(!q||!q.base)continue;
+    if(reg4At(ctx.h4,ctx.a4[e]).state==='bear')continue;
+    if(isAlt&&ctx.btc4&&reg4At(ctx.btc4,ctx.aB[e]).state==='bear')continue;
+    let skip;if(q.full){skip=e-la<6;la=e;}else{skip=e-lb<6;lb=e;}
+    if(skip)continue;
+    const T=q.full?AL:BA;T.n++;
+    for(let j=e+1;j<=e+12;j++){const v=byB.get(j);if(v){T.brk++;if(v.res==='win')T.win++;else if(v.res==='stop')T.stop++;break;}}
+  }
+  return{al:AL,base:BA};
+}
+function boCheckCoin(coin,ctx,isAlt){
+  const X=ctx.h1,saved=CFG;let sigOld,sigNew,sigD,rows,alerts;
+  try{                                                   // synchron, danach sofort zurück auf die echte Einstellung
+    CFG={...saved,setD:false,setE:false};sigOld=scanSignals(ctx,isAlt);
+    CFG={...saved,setA:false,setB:false,setC:false,setD:true,setE:false};sigD=scanSignals(ctx,isAlt);
+    CFG={...saved,setD:true,setE:true};sigNew=scanSignals(ctx,isAlt);
+    const minQ=CFG.minQ,evs=boEvents(ctx);
+    const capOf=(sig,ev)=>{for(let k=ev.b;k<=Math.min(ev.b+12,X.n-1);k++){const s=sig[k];if(s&&s.q>=minQ&&X.c[k]<=ev.c0+ev.risk)return{d:k-ev.b,type:s.type};}return null;};
+    rows=evs.map(ev=>{
+      let warned=false;
+      for(let k=Math.max(WARM,ev.b-12);k<ev.b&&!warned;k++){const q=squeezeAt(ctx,k);if(q&&q.full)warned=true;}
+      return{...ev,capOld:capOf(sigOld,ev),capNew:capOf(sigNew,ev),warned,cls:classifyBar(ctx,isAlt,ev.b)};
+    });
+    alerts=alertStats(ctx,isAlt,evs);
+  }finally{CFG=saved;}
+  return{coin,ctx,rows,alerts,sigOld,sigNew,sigD,from:X.t[WARM],to:X.T[X.n-1]};
+}
+/* Backtest-Vergleich mit den Annahmen des Backtest-Tabs (simulate · portfolio · btStats) */
+function btCompare(per,scope){
+  const X0=per[0].ctx.h1,weeks=(X0.T[X0.n-1]-X0.t[WARM])/(7*864e5);
+  const mk=key=>{let all=[];for(const p of per)all=all.concat(simulate(p.ctx.h1,p[key],CFG.minQ,p.coin));return btStats(scope==='ALL'?portfolio(all,CFG.maxPos):all.sort((a,b)=>a.tIn-b.tIn),weeks);};
+  return{weeks,old:mk('sigOld'),neu:mk('sigNew'),onlyD:mk('sigD')};
+}
+async function runBreakoutCheck(){
+  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}btBusy=true;const out=$('boOut'),btn=$('boBtn');btn.disabled=true;
+  const scope=$('btScope').value,pages=+$('btLen').value;
+  try{
+    const coins=scope==='ALL'?COINS:COINS.filter(c=>c.sym===scope);
+    const raws=await getRaws(coins,pages,out);
+    const t0=performance.now(),btc=buildCtx(raws.BTCUSDC,null),per=[];
+    for(const c of coins){
+      out.innerHTML=`<div class="panel loading">⟳ Zähle Ausbrüche · ${c.short} (${per.length+1}/${coins.length}) …</div>`;
+      await new Promise(r=>setTimeout(r,25));
+      const ctx=c.sym==='BTCUSDC'?btc:buildCtx(raws[c.sym],btc);
+      per.push(boCheckCoin(c,ctx,c.sym!=='BTCUSDC'));
+    }
+    if(per[0].ctx.h1.n<WARM+100)throw new Error('Zu wenig historische Daten');
+    renderBO(per,{raws,scope,cmp:btCompare(per,scope),ms:Math.round(performance.now()-t0)});
+  }catch(e){console.error(e);out.innerHTML=`<div class="panel"><b class="r">⚠️ Ausbruch-Check fehlgeschlagen</b><div class="small muted" style="margin-top:4px">${esc(e.message)}</div></div>`;}
+  finally{btBusy=false;btn.disabled=false;}
+}
+function boSummary(per){
+  const all=per.flatMap(p=>p.rows.map(r=>({...r,coin:p.coin}))),win=all.filter(r=>r.res==='win'),stop=all.filter(r=>r.res==='stop');
+  const prec=f=>{const c=all.filter(f);return{n:c.length,w:c.filter(r=>r.res==='win').length,s:c.filter(r=>r.res==='stop').length};};
+  const cls={};for(const r of all){const b=cls[r.cls.code]=cls[r.cls.code]||{n:0,w:0,s:0};b.n++;if(r.res==='win')b.w++;else if(r.res==='stop')b.s++;}
+  const sum=k=>{const t={n:0,brk:0,win:0,stop:0};per.forEach(p=>{for(const f in t)t[f]+=p.alerts[k][f];});return t;};
+  return{all,win,stop,capO:win.filter(r=>r.capOld).length,capN:win.filter(r=>r.capNew).length,warned:win.filter(r=>r.warned).length,
+    precAll:prec(()=>true),precO:prec(r=>r.capOld),precN:prec(r=>r.capNew),precSq:prec(r=>r.warned),precNoSq:prec(r=>!r.warned),cls,al:sum('al'),base:sum('base')};
+}
+function dToggleHTML(){return`Setup D (Ausbruchs-Einstieg) ist in ⚙️ jetzt <b>${CFG.setD?'EIN':'AUS'}</b>. <button class="btn small ghost" onclick="toggleSetup('D')">${CFG.setD?'ausschalten':'einschalten'}</button>`;}
+function toggleSetup(k){CFG['set'+k]=!CFG['set'+k];lsSet('ca_cfg',CFG);analyzeAll();renderAll();const el=$('dToggle');if(el)el.innerHTML=dToggleHTML();toast(`Setup ${k} ${CFG['set'+k]?'eingeschaltet':'ausgeschaltet'}`);}
+function renderBO(per,meta){
+  const S=boSummary(per),nW=S.win.length,nA=S.all.length,P=(a,b)=>b?nf(a/b*100,0)+' %':'–',fmtD=ts=>new Date(ts).toLocaleDateString('de-DE'),pfs=x=>x===Infinity?'∞':nf(x,2);
+  const from=Math.min(...per.map(p=>p.from)),to=Math.max(...per.map(p=>p.to)),weeks=(to-from)/(7*864e5),cmp=meta.cmp;
+  const srcTxt=[...new Set(Object.values(meta.raws).map(r=>r.src==='bn'?'Binance':'CryptoCompare'))].join(' + ');
+  const base=nA?nW/nA:0,lines=[];
+  if(nW<10)lines.push(['warn',`Nur ${nW} Gewinner-Ausbrüche im Zeitraum – zu wenig für eine belastbare Aussage. Längeren Zeitraum wählen.`]);
+  else{
+    const ro=S.capO/nW,pn=S.precN.n?S.precN.w/S.precN.n:0;
+    lines.push([ro<0.5?'fail':'ok',`Bisherige Logik (A/B/C): ${S.capO} von ${nW} Gewinner-Ausbrüchen als Kaufsignal erfasst (${P(S.capO,nW)})${ro<0.5?' – die Mehrheit wird verpasst.':'.'}`]);
+    lines.push([pn>=0.4?'ok':pn>=base-0.03?'warn':'fail',`Mit D/E: ${S.capN} von ${nW} (${P(S.capN,nW)}). Von den erfassten Einstiegen werden ${P(S.precN.w,S.precN.n)} Gewinner (alle Ausbrüche zum Vergleich: ${P(nW,nA)}).`]);
+  }
+  const row=(lab,p)=>`<tr><td>${lab}</td><td>${p.n}</td><td>${P(p.w,p.n)}</td><td>${P(p.s,p.n)}</td></tr>`;
+  const cmpRow=(lab,s)=>`<tr><td>${lab}</td><td>${s.n}</td><td>${nf(s.perWeek,1)}</td><td>${nf(s.wr,0)} %</td><td>${pfs(s.pf)}</td><td class="${s.net>=0?'g':'r'}">${usd(s.net,0)}</td><td>${sg(s.avgR,2)}</td></tr>`;
+  let dv;
+  if(cmp.onlyD.n<20)dv=['warn',`Nur ${cmp.onlyD.n} D-Trades im Zeitraum – zu wenig für ein Urteil. Längeren Zeitraum wählen.`];
+  else if(cmp.onlyD.pf>=1.2&&cmp.onlyD.avgR>0)dv=['ok',`D allein: Profit-Faktor ${pfs(cmp.onlyD.pf)}, Ø ${sg(cmp.onlyD.avgR,2)} R je Trade. In diesem Zeitraum trägt D bei – kein Beweis für die Zukunft.`];
+  else if(cmp.onlyD.pf<1)dv=['fail',`D allein verliert in diesem Zeitraum nach Gebühren (Profit-Faktor ${pfs(cmp.onlyD.pf)}). Ausgeschaltet lassen.`];
+  else dv=['warn',`D allein: Profit-Faktor ${pfs(cmp.onlyD.pf)} – Grenzfall, kein klarer Vorteil.`];
+  const alRow=(lab,t)=>`<tr><td>${lab}</td><td>${t.n}</td><td>${P(t.brk,t.n)}</td><td>${P(t.win,t.n)}</td><td>${P(t.stop,t.n)}</td></tr>`;
+  const rateA=S.al.n?S.al.brk/S.al.n:0,rateB=S.base.n?S.base.brk/S.base.n:0;
+  let alTxt;
+  if(S.al.n<15)alTxt=`Nur ${S.al.n} Verdichtungs-Alarme – zu wenig für eine Aussage.`;
+  else alTxt=rateA-rateB>=0.08?'Nach einer Verdichtung folgt häufiger ein Ausbruch nach oben als in vergleichbarer Lage ohne – die Vorwarnung hat hier Informationswert. Ob dieser Ausbruch auch trägt, zeigt die Gewinner-Spalte.':'Kein messbarer Vorteil der Verdichtung in diesen Daten – dann ist E nur ein Hinweis, kein Signal. Setup E in ⚙️ abschalten ist dann vertretbar.';
+  const clsRows=Object.entries(S.cls).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>{
+    const dec=v.w+v.s,share=dec?v.w/dec:null;let mark='';
+    if(k!=='KAUF'&&v.n>=15&&dec&&nA){const bs=nW/(nW+S.stop.length||1);mark=share<bs-0.05?' ✅':share>bs+0.05?' ⚠️':'';}
+    return`<tr><td>${esc(BO_WHY[k]||k)}</td><td>${v.n}</td><td>${v.w}</td><td>${v.s}</td><td>${dec?P(v.w,dec)+mark:'–'}</td></tr>`;}).join('');
+  $('boOut').innerHTML=`
+   <div class="panel"><div class="lbl">Ausbruch-Check · ${fmtD(from)} – ${fmtD(to)} · ${nf(weeks,1)} Wochen · ${srcTxt} · ${meta.ms} ms</div>
+    ${lines.map(([c,t])=>`<div class="chk ${c}" style="margin-bottom:6px"><span>${ICO[c]}</span><span>${esc(t)}</span></div>`).join('')}
+    <div class="kpis" style="margin-top:8px">${kpi(nA,'Ausbrüche')}${kpi(nW,'Gewinner (≥ 2R)','g')}${kpi(S.stop.length,'Fehlausbrüche','r')}
+     ${kpi(P(S.capO,nW),'erfasst A/B/C',nW&&S.capO/nW>=0.5?'g':'r')}${kpi(P(S.capN,nW),'erfasst mit D/E',nW&&S.capN/nW>=0.5?'g':'a')}${kpi(P(S.warned,nW),'vorgewarnt (E)')}</div>
+    <div class="tiny muted" style="line-height:1.5;margin-top:6px">Ausbruch = 1H-Schluss über dem 48h-Hoch (+ 0,1 ATR), danach 6 Kerzen Pause. Gewinner = +2R binnen 24 h, bevor der Stop (Niveau − 0,5 ATR, mind. 1 ATR) fällt. Erfasst = die App hätte binnen 12 h KAUFEN gezeigt (alle Filter, Min-Q ${CFG.minQ}). Vorgewarnt = Verdichtung in den 12 h davor. Bisher = A/B/C, Neu = A/B/C + D/E – unabhängig von den Schaltern in ⚙️.</div></div>
+   <div class="panel"><div class="lbl">Lohnt sich D? Backtest-Vergleich (Annahmen wie im Backtest-Tab)</div>
+    <div class="chk ${dv[0]}" style="margin-bottom:8px"><span>${ICO[dv[0]]}</span><span>${esc(dv[1])}</span></div>
+    <div class="twrap"><table class="t"><tr><th></th><th>Trades</th><th>Tr./Wo</th><th>Treffer</th><th>PF</th><th>Netto</th><th>Ø R</th></tr>${cmpRow('A/B/C (bisher)',cmp.old)}${cmpRow('A/B/C + D',cmp.neu)}${cmpRow('nur D',cmp.onlyD)}</table></div>
+    <div class="tiny muted" style="margin-top:6px;line-height:1.5">${meta.scope==='ALL'?'Portfolio, max. '+CFG.maxPos+' gleichzeitige Positionen · ':''}Min-Q ${CFG.minQ} · Gebühr ${nf(CFG.feePct,2)} % je Seite · Einstieg zum Open der Folgekerze. Profit-Faktor unter 1 = Verlust nach Gebühren. Unter ~30 Trades ist das Zufall; News, Funding und Slippage fehlen. Das Ergebnis gilt nur für diesen Zeitraum.</div>
+    <div class="small" id="dToggle" style="margin-top:8px">${dToggleHTML()}</div></div>
+   <div class="panel"><div class="lbl">Der Preis der Erfassung – wie oft trägt ein Ausbruch?</div>
+    <div class="twrap"><table class="t"><tr><th></th><th>Einstiege</th><th>Gewinner</th><th>Stop zuerst</th></tr>${row('alle Ausbrüche',S.precAll)}${row('nach Verdichtung (E)',S.precSq)}${row('ohne Verdichtung',S.precNoSq)}${row('erfasst A/B/C',S.precO)}${row('erfasst mit D/E',S.precN)}</table></div>
+    <div class="tiny muted" style="margin-top:6px;line-height:1.5">Mehr Erfassung nützt nur, wenn der Gewinner-Anteil nicht unter den der Zeile „alle Ausbrüche“ fällt. Bei 2R-Zielen und Kosten um 0,1–0,3R braucht ein Setup grob ≥ 40 % Gewinner, um Geld zu verdienen. Zufallsniveau (Kerzen ohne Vorteil): etwa 30 %.</div></div>
+   <div class="panel"><div class="lbl">Was entscheidet am Ausbruch? (Zustand der App an der Ausbruchs-Kerze, mit D/E)</div>
+    <div class="twrap"><table class="t"><tr><th>Ergebnis der App</th><th>Anzahl</th><th>Gew.</th><th>Fehl</th><th>Gew.-Anteil</th></tr>${clsRows}</table></div>
+    <div class="tiny muted" style="margin-top:6px;line-height:1.5">Gew.-Anteil = Gewinner ÷ (Gewinner + Fehlausbrüche). ✅ = dieser Filter hält überwiegend Verlierer fern (Anteil klar unter dem Durchschnitt aller Ausbrüche: ${P(nW,nW+S.stop.length)}). ⚠️ = er hält überdurchschnittlich viele Gewinner fern – hier lohnt sich Lockern.</div></div>
+   <div class="panel"><div class="lbl">Vorwarnung: Verdichtung (Setup E)</div>
+    <div class="twrap"><table class="t"><tr><th></th><th>Fälle</th><th>Ausbruch ≤ 12 h</th><th>davon Gewinner</th><th>davon Stop</th></tr>${alRow('mit Verdichtung',S.al)}${alRow('gleiche Lage, ohne',S.base)}</table></div>
+    <div class="tiny muted" style="margin-top:6px;line-height:1.5">Fälle: Kurs presst unter dem 48h-Hoch, 4H nicht bärisch, ein Fall je Episode. Ausbruch ≤ 12 h = in den nächsten 12 Kerzen schließt eine Kerze über dem Hoch. ${esc(alTxt)}</div></div>
+   <div class="panel"><div class="lbl">Je Coin – erfasste Gewinner-Ausbrüche</div><div class="twrap"><table class="t"><tr><th></th><th>Ausbr.</th><th>Gew.</th><th>A/B/C</th><th>mit D/E</th><th>gewarnt</th></tr>
+    ${per.map(p=>{const w=p.rows.filter(r=>r.res==='win');return`<tr><td>${p.coin.short}</td><td>${p.rows.length}</td><td>${w.length}</td><td>${w.filter(r=>r.capOld).length}</td><td>${w.filter(r=>r.capNew).length}</td><td>${w.filter(r=>r.warned).length}</td></tr>`;}).join('')}</table></div></div>
+   <div class="panel"><div class="lbl">Letzte verpasste Gewinner-Ausbrüche (mit D/E)</div>
+    ${S.all.filter(r=>r.res==='win'&&!r.capNew).sort((a,b)=>b.t-a.t).slice(0,6).map(r=>`<div class="row small" style="padding:6px 0;border-bottom:1px solid var(--bg3)"><span><b>${r.coin.short}</b> <span class="tiny muted">${new Date(r.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span><br><span class="tiny muted">${esc(BO_WHY[r.cls.code]||r.cls.code)}${r.warned?' · vorgewarnt':''}</span></span><b class="num g" style="text-align:right">bis +${nf(r.mfe,1)} %</b></div>`).join('')||'<div class="tiny muted">keine</div>'}</div>`;
+}
+
 /* ════════════════ START ════════════════ */
 function showPage(p){
   document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));
@@ -1214,6 +1466,7 @@ function showPage(p){
   $('cfgBtn').addEventListener('click',()=>{const p=$('cfgPanel'),show=p.style.display==='none';if(show)renderCfg();p.style.display=show?'block':'none';});
   $('newsBtn').addEventListener('click',()=>fetchNews(true));
   $('btBtn').addEventListener('click',runBacktest);
+  $('boBtn').addEventListener('click',runBreakoutCheck);
   $('jAdd').addEventListener('click',addTrade);
   $('jCoin').innerHTML=COINS.map(c=>`<option value="${c.sym}">${c.short}</option>`).join('');
   $('btScope').innerHTML+=COINS.map(c=>`<option value="${c.sym}">${c.name} (${c.short})</option>`).join('');
