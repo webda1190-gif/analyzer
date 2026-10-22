@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#f3f5fa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Crypto Analyzer Pro v15.3</title>
-<!-- v15.3 · Oktober 2026 · + Setup D (Ausbruchs-Einstieg, aus) · + Setup E (Verdichtungs-Vorwarnung, aus) · + Ausbruch-Check · Langzeit-Backtest bis ~3 Jahre · Marktumfeld, Qualitätsstufen, Stabilität · Rohdaten-Export + Langzeit-Export (USDT) · Datenlücken-Schnitt · identische Logik live & Backtest -->
+<title>Crypto Analyzer Pro v16</title>
+<!-- v16 · Oktober 2026 · Trendfolge Tagesbasis (EMA20 > EMA50) mit Volatilitäts-Bremse als Hauptsignal · alte Kurzfrist-Signale (A/B/C) ausgeblendet · Trend-Backtest seit 2018 gegen Buy & Hold · Rohdaten-/Langzeit-Export -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -129,8 +129,8 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
 <section class="page active" id="page-signals">
   <div class="head">
     <div>
-      <div class="h-sub">Binance Spot · Long only · 1H / 4H / 1D</div>
-      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v15.3</span></div>
+      <div class="h-sub">Binance Spot · Long only · Trendfolge (Tagesbasis)</div>
+      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v16</span></div>
       <div class="h-desc" id="statusLine">Lade Marktdaten …</div>
     </div>
     <div style="display:flex;gap:6px">
@@ -142,7 +142,7 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
   <div id="market"></div>
   <div id="summary"></div>
   <div id="cards"><div class="panel loading">⟳ Lade Daten von Binance …</div></div>
-  <div class="foot">Keine Anlageberatung · Signale nur auf geschlossener 1H-Kerze<br>Stop-Loss immer sofort als OCO-Order setzen</div>
+  <div class="foot">Keine Anlageberatung · Signale auf geschlossener Tageskerze (00:00 UTC)<br>Kauf/Verkauf am Morgen danach · Größe mit Volatilitäts-Bremse</div>
 </section>
 
 <section class="page" id="page-news">
@@ -160,7 +160,7 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
     <div class="lbl">Abgeschlossenen Trade manuell erfassen</div>
     <div class="fgrid">
       <div class="field"><label class="fl">Coin</label><select id="jCoin"></select></div>
-      <div class="field"><label class="fl">Setup</label><select id="jSetup"><option value="A">A · Trend-Pullback</option><option value="B">B · Breakout-Retest</option><option value="C">C · RSI-Divergenz</option><option value="D">D · Momentum-Breakout</option><option value="M">Manuell</option></select></div>
+      <div class="field"><label class="fl">Setup</label><select id="jSetup"><option value="A">A · Trend-Pullback</option><option value="B">B · Breakout-Retest</option><option value="C">C · RSI-Divergenz</option><option value="T">T · Trendfolge</option><option value="D">D · Momentum-Breakout</option><option value="M">Manuell</option></select></div>
       <div class="field"><label class="fl">Entry ($)</label><input id="jEntry" type="number" inputmode="decimal" step="any"></div>
       <div class="field"><label class="fl">Exit ($)</label><input id="jExit" type="number" inputmode="decimal" step="any"></div>
       <div class="field"><label class="fl">Position (USDC)</label><input id="jSize" type="number" inputmode="decimal" step="any"></div>
@@ -172,23 +172,15 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
 
 <section class="page" id="page-backtest">
   <div class="head">
-    <div><div class="h-sub">Strategie-Validierung</div><div class="h-title">BACKTEST</div><div class="h-desc">Exakt dieselbe Engine wie die Live-Signale</div></div>
+    <div><div class="h-sub">Strategie-Validierung</div><div class="h-title">BACKTEST</div><div class="h-desc">Trendfolge 20/50 Tage seit 2018 gegen Buy &amp; Hold</div></div>
     <button class="btn" id="btBtn">▶ START</button>
   </div>
-  <div class="panel">
-    <div class="fgrid">
-      <div class="field"><label class="fl">Umfang</label><select id="btScope"><option value="ALL">Alle 5 Coins (Portfolio)</option></select></div>
-      <div class="field"><label class="fl">Zeitraum</label><select id="btLen"><option value="2">~83 Tage</option><option value="3">~125 Tage</option><option value="5">~208 Tage</option><option value="9">~1 Jahr</option><option value="18">~2 Jahre</option><option value="27">~3 Jahre</option><option value="1">~41 Tage</option></select></div>
-    </div>
-    <div class="tiny muted" style="margin-top:8px;line-height:1.5">Einstieg zum Open der Folgekerze · Gebühren je Seite laut ⚙️ · bei gleicher Kerze zählt der Stop zuerst (konservativ) · 50 % bei TP1, danach Stop auf Einstand · Zeitstop · Portfolio-Limit gleichzeitiger Positionen. News, Fear &amp; Greed und Funding sind historisch nicht enthalten. Ab ~208 Tage gibt es nur mit Binance-Daten (CryptoCompare liefert höchstens ~83 Tage). 1–3 Jahre: Laden und Rechnen dauern je nach Handy bis zu einer Minute oder mehr.</div>
-    <div class="row" style="align-items:flex-start;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div><div class="lbl" style="margin:0">Rohdaten exportieren</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Speichert die ~3 Jahre Kerzen (1H, 4H, 1D) der 5 Coins als Datei (ca. 2–3 MB), damit sie außerhalb der App ausgewertet werden können. Nur öffentliche Kursdaten.</div></div><button class="btn" id="exBtn">💾 EXPORT</button></div>
-    <div class="row" style="align-items:flex-start;gap:10px;margin-top:10px"><div><div class="lbl" style="margin:0">Langzeit-Export (USDT, seit 2017)</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Tages- und 4-Stunden-Kerzen seit Handelsbeginn für 11 große Coins (BTC, ETH, BNB, SOL, LINK, XRP, ADA, DOGE, LTC, AVAX, DOT) – für Tests über mehrere Bärenmärkte. Ca. 2 MB, 1–2 Minuten.</div></div><button class="btn" id="exLBtn">💾 LANGZEIT</button></div>
-  </div>
   <div class="panel" id="boPanel">
-    <div class="row" style="align-items:flex-start;gap:10px"><div><div class="lbl" style="margin:0">Ausbruch-Check</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Zählt, wie viele Ausbrüche die App erfasst und wie viele sie verpasst – mit denselben Funktionen wie die Live-Signale, auf den echten Kursen. Umfang und Zeitraum von oben.</div></div><button class="btn" id="boBtn">▶ PRÜFEN</button></div>
+    <div class="tiny muted" style="line-height:1.5">Dieselbe Regel wie die Signale: halten, solange EMA20 &gt; EMA50 der Tagesschlusskurse. Daten: Binance-Tageskerzen der USDT-Paare seit Handelsbeginn (Kurse praktisch gleich wie USDC), deine 5 Coins gleich gewichtet ab dem Tag, an dem alle genug Historie haben. Kosten und Volatilitäts-Bremse laut ⚙️. Laden etwa 20 Sekunden – Bildschirm anlassen.</div>
+    <div class="row" style="align-items:flex-start;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div><div class="lbl" style="margin:0">Rohdaten exportieren</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Speichert die ~3 Jahre Kerzen (1H, 4H, 1D) der 5 Coins als Datei (ca. 2–3 MB), damit sie außerhalb der App ausgewertet werden können. Nur öffentliche Kursdaten.</div></div><button class="btn" id="exBtn">💾 EXPORT</button></div>
+    <div class="row" style="align-items:flex-start;gap:10px;margin-top:10px"><div><div class="lbl" style="margin:0">Langzeit-Export (USDT, seit 2017)</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Tageskerzen seit Handelsbeginn für 11 große Coins (BTC, ETH, BNB, SOL, LINK, XRP, ADA, DOGE, LTC, AVAX, DOT) – für Tests über mehrere Bärenmärkte. Ca. 0,5 MB, etwa 20 Sekunden. Bildschirm dabei anlassen.</div></div><button class="btn" id="exLBtn">💾 LANGZEIT</button></div>
   </div>
   <div id="btOut"></div>
-  <div id="boOut"></div>
 </section>
 <script>
 'use strict';
@@ -200,8 +192,8 @@ const COINS=[
   {sym:'BNBUSDC',alt:'BNBUSDT',cc:'BNB',fut:'BNBUSDT',name:'BNB',short:'BNB',color:'#D9A400'},
   {sym:'LINKUSDC',alt:'LINKUSDT',cc:'LINK',fut:'LINKUSDT',name:'Chainlink',short:'LINK',color:'#2A5ADA'},
 ];
-const SETUP_NAMES={A:'Trend-Pullback',B:'Breakout-Retest',C:'RSI-Divergenz',D:'Momentum-Breakout',E:'Verdichtung',M:'Manuell'};
-const CFG_DEF={posSize:1150,feePct:0.1,minQ:60,minRR:1.5,maxSlPct:5,maxPos:2,timeStopH:48,setA:true,setB:true,setC:true,setD:false,setE:false};
+const SETUP_NAMES={A:'Trend-Pullback',B:'Breakout-Retest',C:'RSI-Divergenz',D:'Momentum-Breakout',E:'Verdichtung',T:'Trendfolge',M:'Manuell'};
+const CFG_DEF={posSize:1150,feePct:0.1,minQ:60,minRR:1.5,maxSlPct:5,maxPos:2,timeStopH:48,setA:true,setB:true,setC:true,setD:false,setE:false,volBrake:true,volTarget:40};
 const IV={'1h':3600000,'4h':14400000,'1d':86400000};
 const BN_HOSTS=['https://data-api.binance.vision/api/v3','https://api.binance.com/api/v3'];
 const CC_BASE='https://min-api.cryptocompare.com/data';
@@ -756,7 +748,7 @@ async function fetchNews(force){
     NEWS.items=items;NEWS.fetched=Date.now();
   }finally{NEWS.busy=false;if(btn)btn.disabled=false;}
   renderNews();
-  if(Object.keys(CTX).length){analyzeAll();renderAll();}   // Ereignis-Filter wirkt sofort auf Signale
+  if(Object.keys(CTX).length){analyzeTrend();renderTrend();}   // Ereignis-Filter wirkt sofort auf Signale
 }
 function renderNews(){
   const box=$('newsBox');if(!box)return;
@@ -792,7 +784,7 @@ async function fetchAll(full=false){
     const anyBn=COINS.some(c=>DATA[c.sym]&&DATA[c.sym].src==='bn'),anyCc=COINS.some(c=>DATA[c.sym]&&DATA[c.sym].src==='cc');
     if(anyBn&&!bnFailRound)lsSet(BN_KEY,0);
     else if(bnFailRound&&anyCc){bnDownUntil=Date.now()+24*3600e3;lsSet(BN_KEY,bnDownUntil);}
-    autoManage();analyzeAll();renderAll();notifyNewBuys();
+    autoManage();analyzeTrend();renderTrend();notifyTrend();
     const failed=COINS.filter((c,i)=>results[i].status!=='fulfilled').map(c=>c.short);
     const srcs=[...new Set(COINS.map(c=>DATA[c.sym]&&DATA[c.sym].src).filter(Boolean))].map(s=>s==='bn'?'Binance live':'CryptoCompare-Index').join(' + ');
     setStatus(`Stand ${hhmm(Date.now())} · ${srcs||'keine Datenquelle'}${failed.length?' · ⚠️ '+failed.join(', ')+' nicht geladen':''}`);
@@ -1032,34 +1024,30 @@ function renderCfg(){
   const fld=(k,label)=>`<div class="field"><label class="fl">${label}</label><input id="cfg_${k}" type="number" step="any" inputmode="decimal" value="${CFG[k]}"></div>`;
   $('cfgPanel').innerHTML=`<div class="lbl">Einstellungen</div>
    <div class="fgrid">
-    ${fld('posSize','Positionsgröße (USDC)')}${fld('feePct','Gebühr je Seite (%)')}
-    ${fld('minQ','Min. Qualität (0–100)')}${fld('minRR','Min. Ø R:R netto')}
-    ${fld('maxSlPct','Max. Stop-Distanz (%)')}${fld('maxPos','Max. offene Positionen')}
-    ${fld('timeStopH','Zeitstop (Stunden)')}
-    <div class="field"><label class="fl">Setups aktiv</label><div style="display:flex;flex-wrap:wrap;gap:6px 12px;padding:9px 0">${['A','B','C','D','E'].map(k=>`<label style="display:flex;gap:4px;align-items:center;font-size:13px;font-weight:700"><input type="checkbox" id="cfg_set${k}" ${CFG['set'+k]?'checked':''}> ${k}</label>`).join('')}</div></div>
+    ${fld('posSize','Basisgröße je Coin (USDC)')}${fld('feePct','Gebühr je Seite (%)')}
+    ${fld('volTarget','Bremse: Ziel-Schwankung (% / Jahr)')}
+    <div class="field"><label class="fl">Volatilitäts-Bremse</label><label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:700;padding:9px 0"><input type="checkbox" id="cfg_volBrake" ${CFG.volBrake?'checked':''}> an</label></div>
    </div>
    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn green" onclick="saveCfgUI()">Speichern</button><button class="btn ghost" onclick="resetCfg()">Standard</button><button class="btn ghost" onclick="askNotify()">🔔 Alarme</button></div>
-   <div class="tiny muted" style="margin-top:8px;line-height:1.5">A = Trend-Pullback · B = Breakout-Retest · C = RSI-Divergenz (Gegentrend) · D = Momentum-Breakout (Einstieg direkt beim Ausbruch – im Test auf echten Kursen 4–10/2026 verlustreich, Profit-Faktor 0,39: daher aus; der Backtest-Tab → Ausbruch-Check zeigt es mit deinen Daten) · E = Verdichtung (nur Vorwarnung, kein Kauf – dort kein Vorteil gemessen: daher aus). Gebühr 0,1 % = Binance-Standard (mit BNB-Rabatt 0,075 %). Mindestqualität über den Backtest kalibrieren. Alarme (Einblendung, Vibration) funktionieren nur bei geöffneter Seite – kein Hintergrund-Push.</div>
-   <div class="tiny muted" style="margin-top:8px;line-height:1.5">Datenquelle: ${Date.now()<bnDownUntil?`CryptoCompare – Binance ist in diesem Browser gesperrt (nächster Test ${new Date(bnDownUntil).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})}). <button class="btn small ghost" onclick="retestBinance()">Binance jetzt testen</button>`:'Binance (Fallback CryptoCompare)'}</div>`;
+   <div class="tiny muted" style="margin-top:8px;line-height:1.5">Regel: halten, solange die 20-Tage-Linie (EMA20) über der 50-Tage-Linie (EMA50) der Tagesschlusskurse liegt. Bremse: Größe beim Einstieg = Basisgröße × Ziel-Schwankung ÷ aktuelle 30-Tage-Schwankung (höchstens 100 %). Im Langzeit-Test 2021–2026 (deine 5 Coins) senkte die Bremse mit Ziel 40 % den größten Rückgang von −67 % auf −44 %.</div>
+   <div class="tiny muted" style="margin-top:8px;line-height:1.5">Datenquelle: ${Date.now()<bnDownUntil?`CryptoCompare – Binance ist in diesem Browser gesperrt (nächster Test ${new Date(bnDownUntil).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})}). <button class="btn small ghost" onclick="retestBinance()">Binance jetzt testen</button>`:'Binance (CryptoCompare als Ersatz)'}</div>`;
 }
 function retestBinance(){bnDownUntil=0;lsSet(BN_KEY,0);hostOrder=[...BN_HOSTS];BTCACHE=null;$('cfgPanel').style.display='none';fetchAll(true);}
 function saveCfgUI(){
   const num=(k,a,b)=>{const v=parseFloat(String($('cfg_'+k).value).replace(',','.'));if(isFinite(v))CFG[k]=clamp(v,a,b);};
-  num('posSize',10,1e7);num('feePct',0,1);num('minQ',0,100);num('minRR',0.5,10);num('maxSlPct',0.5,20);num('maxPos',1,5);num('timeStopH',4,720);
-  CFG.maxPos=Math.round(CFG.maxPos);CFG.minQ=Math.round(CFG.minQ);
-  for(const k of ['A','B','C','D','E'])CFG['set'+k]=$('cfg_set'+k).checked;
-  lsSet('ca_cfg',CFG);$('cfgPanel').style.display='none';BTCACHE=null;
-  analyzeAll();renderAll();toast('⚙️ Gespeichert');
+  num('posSize',10,1e7);num('feePct',0,1);num('volTarget',5,200);CFG.volBrake=$('cfg_volBrake').checked;
+  lsSet('ca_cfg',CFG);$('cfgPanel').style.display='none';
+  analyzeTrend();renderTrend();toast('⚙️ Gespeichert');
 }
-function resetCfg(){CFG={...CFG_DEF};lsSet('ca_cfg',CFG);renderCfg();analyzeAll();renderAll();toast('Standardwerte geladen');}
+function resetCfg(){CFG={...CFG_DEF};lsSet('ca_cfg',CFG);renderCfg();analyzeTrend();renderTrend();toast('Standardwerte geladen');}
 function askNotify(){
-  if(/Android/i.test(navigator.userAgent)){toast('Android-Browser zeigen für Webseiten keine System-Benachrichtigung. Neues Kaufsignal = Einblendung + Vibration, solange die Seite offen ist. Für Hintergrund-Alarme: Binance-Preisalarm auf den Trigger-Preis.',9000);return;}
+  if(/Android/i.test(navigator.userAgent)){toast('Android-Browser zeigen für Webseiten keine System-Benachrichtigung. Neues Trendsignal = Einblendung + Vibration, solange die Seite offen ist. Für Hintergrund-Alarme: Binance-Preisalarm auf den Kipp-Kurs.',9000);return;}
   if(!('Notification' in window)){toast('Browser unterstützt keine Benachrichtigungen – Ton/Vibration bleibt aktiv');return;}
   Notification.requestPermission().then(p=>toast(p==='granted'?'🔔 Alarme aktiv (App muss geöffnet bleiben)':'Benachrichtigungen abgelehnt'));
 }
 function tick(){
-  const now=Date.now(),ms=3600e3-(now%3600e3),m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000);
-  const el=$('cd');if(el)el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const now=Date.now(),ms=864e5-(now%864e5),h=Math.floor(ms/3600e3),m=Math.floor(ms%3600e3/60000);
+  const el=$('cd');if(el)el.textContent=`${h} h ${String(m).padStart(2,'0')} min`;
 }
 
 /* ════════════════ JOURNAL ════════════════ */
@@ -1072,7 +1060,7 @@ function takeTrade(sym){
   trades.unshift({id:Date.now(),coin:r.coin.short,sym,setup:r.best.s.type,signal:`${r.best.s.name} · Q ${r.best.qF}`,q:r.best.qF,score:r.best.qF,
     entry:p.entry,sl:p.sl,tp1:p.tp1,tp2:p.tp2,be:roundP(p.entry*(1+2*f),sym,'up'),qty,size:+(qty*p.entry).toFixed(2),
     openTs:Date.now(),open:true,tp1Hit:false,rem:1,realized:0,result:'open',exit:null,pnl:0,...nowDate()});
-  saveTrades();renderJournal();analyzeAll();renderAll();
+  saveTrades();renderJournal();analyzeTrend();renderTrend();
   toast(`📒 ${r.coin.short} übernommen – jetzt Stop & Ziele als OCO bei Binance setzen!`,5000);
 }
 function fillTrade(t,frac,price){const f=CFG.feePct/100,qty=t.qty||(t.size||CFG.posSize)/t.entry;t.realized=(t.realized||0)+qty*frac*(price-t.entry)-qty*frac*(price+t.entry)*f;t.rem=(t.rem==null?1:t.rem)-frac;}
@@ -1111,9 +1099,9 @@ function manualClose(id){
   const d=DATA[t.sym||(t.coin+'USDC')],def=d?d.h1.c[d.h1.c.length-1]:t.entry;
   const v=prompt(`Exit-Preis für ${t.coin} (Rest ${Math.round((t.rem==null?1:t.rem)*100)} %):`,String(def));if(v==null)return;
   const p=parseFloat(String(v).replace(',','.'));if(!(p>0)){toast('Ungültiger Preis');return;}
-  closeTrade(t,p,'Manuell geschlossen');saveTrades();renderJournal();analyzeAll();renderAll();
+  closeTrade(t,p,'Manuell geschlossen');saveTrades();renderJournal();analyzeTrend();renderTrend();
 }
-function delTrade(id){if(!confirm('Trade endgültig löschen?'))return;trades=trades.filter(t=>t.id!==id);saveTrades();renderJournal();analyzeAll();renderAll();}
+function delTrade(id){if(!confirm('Trade endgültig löschen?'))return;trades=trades.filter(t=>t.id!==id);saveTrades();renderJournal();analyzeTrend();renderTrend();}
 function addTrade(){
   const sym=$('jCoin').value,coin=COINS.find(c=>c.sym===sym),num=id=>parseFloat(String($(id).value).replace(',','.'));
   const entry=num('jEntry'),exit=num('jExit'),size=num('jSize')||CFG.posSize;
@@ -1281,7 +1269,7 @@ function drawEquity(cv,curve){
   g.strokeStyle=curve[curve.length-1]>=0?'#0a8f5a':'#d23a3a';g.lineWidth=2;g.beginPath();
   curve.forEach((v,i)=>{if(i)g.lineTo(x(i),y(v));else g.moveTo(x(i),y(v));});g.stroke();
 }
-function applyMinQ(th){CFG.minQ=th;lsSet('ca_cfg',CFG);analyzeAll();renderAll();toast(`Min-Qualität auf ${th} gesetzt`);runBacktest();}
+function applyMinQ(th){CFG.minQ=th;lsSet('ca_cfg',CFG);analyzeTrend();renderTrend();toast(`Min-Qualität auf ${th} gesetzt`);runBacktest();}
 
 /* Historie laden (gemeinsamer Cache für Backtest und Ausbruch-Check, 30 min) – mit Fortschritt in % */
 let HPROG=null;
@@ -1389,7 +1377,7 @@ async function runExport(){
   try{
     const raws=await getRaws(COINS,27,out);
     out.innerHTML='<div class="panel loading">⟳ Packe Datei …</div>';await paint();
-    const pk=packS,doc={format:'krypto-daten-v1',app:'v15.3',exportiert:new Date().toISOString(),coins:{}},rows=[];
+    const pk=packS,doc={format:'krypto-daten-v1',app:'v15.4',exportiert:new Date().toISOString(),coins:{}},rows=[];
     for(const c of COINS){
       const r=raws[c.sym];doc.coins[c.sym]={src:r.src,bsym:r.bsym,h1:pk(r.h1),h4:pk(r.h4),d1:pk(r.d1)};
       rows.push({k:c.short,n:r.h1.t.length,from:r.h1.t[0],gaps:gapInfo(r.h1,IV['1h']),src:r.src,bsym:r.bsym,cut:r.cut});
@@ -1411,23 +1399,29 @@ async function runExport(){
   finally{btBusy=false;btn.disabled=false;btn.textContent=old;}
 }
 
-/* ── Langzeit-Export: Tageskerzen + 4H der USDT-Paare seit Handelsbeginn (für Tests über mehrere Bärenmärkte; USDT ≈ USDC im Kurs) ── */
+/* ── Langzeit-Export: Tageskerzen der USDT-Paare seit Handelsbeginn (für Tests über mehrere Bärenmärkte; USDT ≈ USDC im Kurs).
+   Nur Tageskerzen (4 Abfragen je Coin), bis zu 3 Versuche je Coin, Bildschirm wach halten; geladene Coins bleiben 30 min im Speicher,
+   ein zweiter Tipp lädt nur Fehlendes nach. Fehler stehen in der Datei (errors) und in der Tabelle. ── */
 const LONG_SYMS=['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','LINKUSDT','XRPUSDT','ADAUSDT','DOGEUSDT','LTCUSDT','AVAXUSDT','DOTUSDT'];
+const LONG_CACHE={};
 async function runLongExport(){
   if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}
   btBusy=true;const out=$('btOut'),btn=$('exLBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='⟳ …';
   out.innerHTML='<div class="panel loading">⟳ Langzeit-Export startet …</div>';showOut(out);
+  let lock=null;try{if(navigator.wakeLock&&navigator.wakeLock.request)lock=await navigator.wakeLock.request('screen');}catch(e){lock=null;}
   try{
     const now=Date.now(),trim=s=>{let k=s.T.length;while(k>0&&s.T[k-1]>now)k--;if(k<s.T.length)for(const f of FIELDS)s[f]=s[f].slice(0,k);return s;};
-    const doc={format:'krypto-lang-v1',app:'v15.3',exportiert:new Date().toISOString(),coins:{}},rows=[];
+    const doc={format:'krypto-lang-v1',app:'v15.4',exportiert:new Date().toISOString(),coins:{},errors:{}},rows=[];
     for(let i=0;i<LONG_SYMS.length;i++){
-      const sym=LONG_SYMS[i],k=sym.replace('USDT','');
-      out.innerHTML=`<div class="panel loading">⟳ Lade Langzeit-Historie · ${k} (${i+1}/${LONG_SYMS.length}) …</div>`;
-      try{
-        const d1=trim(await bnPaged(sym,'1d',4000)),h4=trim(await bnPaged(sym,'4h',24000));
-        doc.coins[sym]={d1:packS(d1),h4:packS(h4)};
-        rows.push({k,nD:d1.t.length,n4:h4.t.length,from:d1.t[0],gaps:gapInfo(d1,IV['1d'])});
-      }catch(e){rows.push({k,err:e.message});}
+      const sym=LONG_SYMS[i],k=sym.replace('USDT',''),c=LONG_CACHE[sym];
+      let got=c&&Date.now()-c.ts<30*60e3?c.d1:null,err=null;
+      for(let a=0;!got&&a<3;a++){
+        out.innerHTML=`<div class="panel loading">⟳ Lade Tageskerzen · ${k} (${i+1}/${LONG_SYMS.length})${a?` · Versuch ${a+1}`:''} …</div>`;
+        try{got=trim(await bnPaged(sym,'1d',4000));LONG_CACHE[sym]={d1:got,ts:Date.now()};}
+        catch(e){err=e.message||String(e);if(/HTTP 400/.test(err))break;await new Promise(r=>setTimeout(r,1500*(a+1)));}
+      }
+      if(got){doc.coins[sym]={d1:packS(got)};rows.push({k,nD:got.t.length,from:got.t[0],gaps:gapInfo(got,IV['1d'])});}
+      else{doc.errors[sym]=err||'unbekannt';rows.push({k,err:err||'unbekannt'});}
     }
     if(!Object.keys(doc.coins).length)throw new Error('Keine Daten von Binance erhalten – später erneut versuchen.');
     out.innerHTML='<div class="panel loading">⟳ Packe Datei …</div>';await paint();
@@ -1435,14 +1429,14 @@ async function runLongExport(){
     EXPORT_FILE={blob:gz.blob,name};
     const fmtD=ts=>new Date(ts).toLocaleDateString('de-DE'),mb=nf(gz.blob.size/1048576,1),bad=rows.filter(r=>r.err);
     out.innerHTML=`<div class="panel"><div class="lbl">Langzeit-Export</div>
-     <div class="chk ${bad.length?'warn':'ok'}" style="margin-bottom:8px"><span>${bad.length?ICO.warn:ICO.ok}</span><span>Datei <b>${esc(name)}</b> (${mb} MB) ist fertig${bad.length?` – ohne ${bad.map(r=>r.k).join(', ')} (keine Daten)`:''}. Tippe auf „Datei speichern“ und hänge sie im Chat an.</span></div>
+     <div class="chk ${bad.length?'warn':'ok'}" style="margin-bottom:8px"><span>${bad.length?ICO.warn:ICO.ok}</span><span>Datei <b>${esc(name)}</b> (${mb} MB) ist fertig – ${rows.length-bad.length} von ${rows.length} Coins. ${bad.length?`Es fehlen ${bad.map(r=>r.k).join(', ')}: tippe nochmal auf „💾 LANGZEIT“ – dann lädt die App nur die fehlenden nach. `:''}Tippe auf „Datei speichern“ und hänge sie im Chat an.</span></div>
      <button class="btn" id="exSave" style="width:100%;padding:12px;margin-bottom:8px">💾 DATEI SPEICHERN</button>
-     <div class="twrap"><table class="t"><tr><th></th><th>Tage</th><th>4H</th><th>ab</th><th>Lücken</th></tr>
-     ${rows.map(r=>r.err?`<tr><td>${r.k}</td><td colspan="4" class="r">${esc(r.err)}</td></tr>`:`<tr><td>${r.k}</td><td>${nf(r.nD,0)}</td><td>${nf(r.n4,0)}</td><td style="white-space:nowrap">${fmtD(r.from)}</td><td>${nf(r.gaps,0)}</td></tr>`).join('')}</table></div>
-     <div class="tiny muted" style="margin-top:6px;line-height:1.5">USDT-Paare von Binance (Kurse praktisch gleich wie USDC), Tageskerzen und 4-Stunden-Kerzen seit Handelsbeginn. Nur öffentliche Kursdaten.</div></div>`;
+     <div class="twrap"><table class="t"><tr><th></th><th>Tage</th><th>ab</th><th>Lücken</th></tr>
+     ${rows.map(r=>r.err?`<tr><td>${r.k}</td><td colspan="3" class="r">${esc(r.err)}</td></tr>`:`<tr><td>${r.k}</td><td>${nf(r.nD,0)}</td><td style="white-space:nowrap">${fmtD(r.from)}</td><td>${nf(r.gaps,0)}</td></tr>`).join('')}</table></div>
+     <div class="tiny muted" style="margin-top:6px;line-height:1.5">USDT-Paare von Binance (Kurse praktisch gleich wie USDC), Tageskerzen seit Handelsbeginn. Nur öffentliche Kursdaten.</div></div>`;
     $('exSave').addEventListener('click',saveExport);
   }catch(e){console.error(e);out.innerHTML=`<div class="panel"><b class="r">⚠️ Langzeit-Export fehlgeschlagen</b><div class="small muted" style="margin-top:4px">${esc(e.message)}</div></div>`;}
-  finally{btBusy=false;btn.disabled=false;btn.textContent=old;}
+  finally{try{if(lock)lock.release();}catch(e){}btBusy=false;btn.disabled=false;btn.textContent=old;}
 }
 /* ════════════════ AUSBRUCH-CHECK ════════════════
    Frage: „Verpasst die App Ausbrüche – und lohnt es sich, sie zu handeln?“ Gemessen an den Kursen, mit denselben Funktionen wie die Live-Signale.
@@ -1567,7 +1561,7 @@ function boSummary(per){
     precAll:prec(()=>true),precO:prec(r=>r.capOld),precN:prec(r=>r.capNew),precSq:prec(r=>r.warned),precNoSq:prec(r=>!r.warned),cls,al:sum('al'),base:sum('base')};
 }
 function dToggleHTML(){return`Setup D (Ausbruchs-Einstieg) ist in ⚙️ jetzt <b>${CFG.setD?'EIN':'AUS'}</b>. <button class="btn small ghost" onclick="toggleSetup('D')">${CFG.setD?'ausschalten':'einschalten'}</button>`;}
-function toggleSetup(k){CFG['set'+k]=!CFG['set'+k];lsSet('ca_cfg',CFG);analyzeAll();renderAll();const el=$('dToggle');if(el)el.innerHTML=dToggleHTML();toast(`Setup ${k} ${CFG['set'+k]?'eingeschaltet':'ausgeschaltet'}`);}
+function toggleSetup(k){CFG['set'+k]=!CFG['set'+k];lsSet('ca_cfg',CFG);analyzeTrend();renderTrend();const el=$('dToggle');if(el)el.innerHTML=dToggleHTML();toast(`Setup ${k} ${CFG['set'+k]?'eingeschaltet':'ausgeschaltet'}`);}
 function renderBO(per,meta){
   const S=boSummary(per),nW=S.win.length,nA=S.all.length,P=(a,b)=>b?nf(a/b*100,0)+' %':'–',fmtD=ts=>new Date(ts).toLocaleDateString('de-DE'),pfs=x=>x===Infinity?'∞':nf(x,2);
   const from=Math.min(...per.map(p=>p.from)),to=Math.max(...per.map(p=>p.to)),weeks=(to-from)/(7*864e5),cmp=meta.cmp;
@@ -1625,13 +1619,276 @@ function renderBO(per,meta){
     ${S.all.filter(r=>r.res==='win'&&!r.capNew).sort((a,b)=>b.t-a.t).slice(0,6).map(r=>`<div class="row small" style="padding:6px 0;border-bottom:1px solid var(--bg3)"><span><b>${r.coin.short}</b> <span class="tiny muted">${new Date(r.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span><br><span class="tiny muted">${esc(BO_WHY[r.cls.code]||r.cls.code)}${r.warned?' · vorgewarnt':''}</span></span><b class="num g" style="text-align:right">bis +${nf(r.mfe,1)} %</b></div>`).join('')||'<div class="tiny muted">keine</div>'}</div>`;
 }
 
+/* ════════════════ TRENDFOLGE (Tagesbasis) – Hauptsignal ab v16 ════════════════
+   Regel (vorab festgelegt, getestet 2018–2026 auf 11 Coins): halten, solange EMA20 > EMA50 der Tagesschlusskurse (UTC).
+   Volatilitäts-Bremse: Positionsgröße beim Einstieg = Basisgröße × min(1, Zielvolatilität / 30-Tage-Volatilität).
+   Ausführung: zum Open des Tages nach dem Signal (Tagesschluss 00:00 UTC). */
+const TR={fast:20,slow:50,volN:30,warm:200,slip:0.0005};
+/* EMA wie pandas ewm(span=p, adjust=False): Start mit dem ersten Wert */
+function emaW(a,p){const k=2/(p+1),n=a.length,o=new Array(n);let e=a[0];for(let i=0;i<n;i++){e=i?e+k*(a[i]-e):a[0];o[i]=e;}return o;}
+/* annualisierte Volatilität: Stichproben-Standardabweichung der Log-Renditen über n Tage × √365 (wie pandas rolling(n).std()) */
+function volS(c,n){
+  const N=c.length,r=new Array(N).fill(0),o=new Array(N).fill(null);
+  for(let i=1;i<N;i++)r[i]=Math.log(c[i]/c[i-1]);
+  for(let i=n;i<N;i++){let m=0;for(let j=i-n+1;j<=i;j++)m+=r[j];m/=n;let v=0;for(let j=i-n+1;j<=i;j++)v+=(r[j]-m)*(r[j]-m);o[i]=Math.sqrt(v/(n-1))*Math.sqrt(365);}
+  return o;
+}
+function trendOn(e20,e50,i){return e20[i]>e50[i];}
+/* Brems-Faktor (Anteil der Basisgröße) */
+function brakeF(vol,target){return target==null?1:Math.min(1,target/Math.max(vol||0,1e-9));}
+/* Kipp-Kurs: Tagesschluss, bei dem EMA20 und EMA50 am nächsten Tag gleich wären (darunter/darüber kippt das Signal) */
+function flipPrice(e20,e50){const a=2/(TR.fast+1),b=2/(TR.slow+1);return((1-b)*e50-(1-a)*e20)/(a-b);}
+/* Konto je Coin: Start 1,0 am Ende des Warmlaufs; Kauf mit Anteil f des Kontos, Verkauf komplett. d={t,o,c} (Tageskerzen) */
+function trendAccount(d,opt){
+  const c=d.c,n=c.length,W=opt.warm??TR.warm,e20=emaW(c,TR.fast),e50=emaW(c,TR.slow),vol=volS(c,TR.volN);
+  const val=new Array(n).fill(null),trades=[];let cash=1,units=0,cur=null;
+  for(let i=W;i<n;i++){
+    if(i>W){
+      const want=trendOn(e20,e50,i-1);
+      if(units===0&&want){const f=brakeF(vol[i-1],opt.target),inv=cash*f;units=inv*(1-opt.cost)/d.o[i];cash-=inv;cur={i,t:d.t[i],px:d.o[i],f,inv,vol:vol[i-1]};}
+      else if(units>0&&!want){const back=units*d.o[i]*(1-opt.cost);cash+=back;trades.push({...cur,tOut:d.t[i],pxOut:d.o[i],ret:back/cur.inv-1});units=0;cur=null;}
+    }
+    val[i]=cash+units*c[i];
+  }
+  if(cur)trades.push({...cur,tOut:null,pxOut:c[n-1],ret:units*c[n-1]*(1-opt.cost)/cur.inv-1,open:true});
+  return{val,trades,e20,e50,vol,W};
+}
+function curveStats(ts,v){
+  const n=v.length;if(n<2)return null;let pk=v[0],dd=0;for(const x of v){pk=Math.max(pk,x);dd=Math.min(dd,x/pk-1);}
+  const yrs=(ts[n-1]-ts[0])/(365.25*864e5),f=v[n-1]/v[0];
+  return{factor:f,cagr:yrs>0?(Math.pow(f,1/yrs)-1)*100:0,mdd:dd*100,yrs};
+}
+function yearRets(ts,v){
+  const out=[];let prevEnd=v[0],y=new Date(ts[0]).getUTCFullYear(),last=v[0];
+  for(let i=0;i<v.length;i++){const yy=new Date(ts[i]).getUTCFullYear();if(yy!==y){out.push({y,ret:(last/prevEnd-1)*100});prevEnd=last;y=yy;}last=v[i];}
+  out.push({y,ret:(last/prevEnd-1)*100,ytd:true});return out;
+}
+/* Gesamt: je Coin (eigener Zeitraum) + Portfolio (gleich gewichtet ab gemeinsamem Start) + Buy & Hold */
+function trendBacktestAll(series,opt,startTs){
+  const coins=[];
+  for(const sym of Object.keys(series)){
+    const d=series[sym];if(!d||d.c.length<(opt.warm??TR.warm)+30)continue;
+    const A=trendAccount(d,opt),W=A.W,ts=d.t.slice(W),tv=A.val.slice(W),bh=d.c.slice(W).map(x=>x/d.o[W]);
+    coins.push({sym,d,A,ts,tv,bh,st:curveStats(ts,tv),bst:curveStats(ts,bh),first:ts[0]});
+  }
+  if(!coins.length)throw new Error('Zu wenig Daten');
+  const start=startTs!=null?startTs:Math.max(...coins.map(x=>x.first));
+  const days=[...new Set(coins.flatMap(x=>x.ts.filter(t=>t>=start)))].sort((a,b)=>a-b);
+  const avg=key=>{const cols=coins.map(x=>{const m=new Map();let base=null;for(let i=0;i<x.ts.length;i++)if(x.ts[i]>=start){const v=x[key][i];if(base==null)base=v;m.set(x.ts[i],v/base);}return m;});
+    const last=coins.map(()=>null);return days.map(t=>{let s=0,k=0;cols.forEach((m,j)=>{if(m.has(t))last[j]=m.get(t);if(last[j]!=null){s+=last[j];k++;}});return k?s/k:null;});};
+  const pv=avg('tv'),pb=avg('bh');
+  const trades=coins.flatMap(x=>x.A.trades.map(t=>({...t,sym:x.sym}))).sort((a,b)=>a.t-b.t);
+  const inP=trades.filter(t=>t.t>=start);
+  return{coins,start,days,pv,pb,pst:curveStats(days,pv),pbst:curveStats(days,pb),pyr:yearRets(days,pv),byr:yearRets(days,pb),trades,inP,
+    perYear:inP.length/Math.max(1e-9,(days[days.length-1]-days[0])/(365.25*864e5))};
+}
+
+/* ── Live: Trend-Status je Coin aus den geschlossenen Tageskerzen des gehandelten USDC-Paars ── */
+let TRES={},HOLD=lsGet('ca_hold',{}),TPREV=lsGet('ca_trend_prev',null);
+if(!HOLD||typeof HOLD!=='object')HOLD={};
+const TST={BUY:['🟢 KAUFEN','b-buy'],IN:['📈 IM TREND','b-hold'],SELL:['🔴 VERKAUFEN','b-no'],OUT:['⚪ DRAUSSEN','b-watch']};
+const TORD={BUY:0,SELL:1,IN:2,OUT:3};
+const fD=ts=>new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+function trendLive(coin){
+  const d=DATA[coin.sym];if(!d||!d.d1||!d.d1.t.length)return{coin,err:'Keine Tageskerzen geladen'};
+  const D1=d.d1,now=Date.now();let e=D1.t.length-1;while(e>0&&D1.T[e]>now)e--;
+  if(e<TR.slow+TR.volN)return{coin,err:`Zu wenige Tageskerzen (${e+1})`};
+  const c=D1.c.slice(0,e+1),t=D1.t.slice(0,e+1),e20=emaW(c,TR.fast),e50=emaW(c,TR.slow),vol=volS(c,TR.volN);
+  const on=trendOn(e20,e50,e),prevOn=trendOn(e20,e50,e-1);
+  let k=e;while(k>0&&trendOn(e20,e50,k-1)===on)k--;
+  const cur=d.h1&&d.h1.c.length?d.h1.c[d.h1.c.length-1]:c[e];
+  const f=brakeF(vol[e],CFG.volBrake?CFG.volTarget/100:null);
+  return{coin,status:on?(prevOn?'IN':'BUY'):(prevOn?'SELL':'OUT'),on,k,e,day:t[e],actDay:t[k]+864e5,pxSince:c[k],cur,
+    chgSince:(cur/c[k]-1)*100,flip:flipPrice(e20[e],e50[e]),spread:(e20[e]/e50[e]-1)*100,vol:vol[e],f,size:CFG.posSize*f,c,t,e20,e50,src:d.src,bsym:d.bsym};
+}
+function analyzeTrend(){for(const c of COINS){let r;try{r=trendLive(c);}catch(e){console.error(c.short,e);r={coin:c,err:'Analysefehler: '+e.message};}TRES[c.sym]=r;}}
+function holding(sym){return!!HOLD[sym];}
+function toggleHold(sym,on){
+  if(on){const r=TRES[sym];HOLD[sym]={since:Date.now(),price:r&&!r.err?r.cur:null};}else delete HOLD[sym];
+  lsSet('ca_hold',HOLD);renderTrend();
+}
+/* Was heute zu tun ist – abhängig davon, ob der Coin gehalten wird */
+function trendAction(r){
+  const h=holding(r.coin.sym),sz=`ca. ${nf(r.size,0)} USDC`;
+  if(h)return r.on?{k:'hold',t:'Halten – Trend läuft.'}:{k:'sell',t:r.status==='SELL'?'Heute verkaufen – neues Verkaufssignal.':`Verkaufen – Trend ist seit ${fD(r.actDay)} vorbei.`};
+  if(r.status==='BUY')return{k:'buy',t:`Heute kaufen – neues Kaufsignal · ${sz}.`};
+  if(r.status==='IN')return{k:'late',t:`Trend läuft seit ${fD(r.actDay)} (${sg(r.chgSince,1)} %). Nach der Regel investiert sein: Einstieg möglich, ${sz} – vorsichtiger: auf das nächste frische Kaufsignal warten.`};
+  return{k:'none',t:r.status==='SELL'?'Neues Verkaufssignal – du hältst keine Position: nichts tun.':'Kein Trend – nichts tun.'};
+}
+function renderTrend(){renderTrendMarket();renderTrendSummary();renderTrendCards();}
+function renderTrendMarket(){
+  const list=COINS.map(c=>TRES[c.sym]).filter(r=>r&&!r.err),b=TRES.BTCUSDC,nOn=list.filter(r=>r.on).length;
+  const f=MKT.fng,fs=f==null?'na':f>=80?'fail':(f>=70||f<=25)?'warn':'ok';
+  const day=list.length?list[0].day:null;
+  $('market').innerHTML=`<div class="panel">
+    <div class="row"><div class="lbl" style="margin:0">Marktlage · Tagesbasis</div><div class="tiny muted">Tagesschluss in <b class="num" id="cd">--:--</b></div></div>
+    <div class="mkt-grid">
+      ${chip('BTC',!b||b.err?'–':b.on?'▲ Trend':'→ kein Trend',!b||b.err?'na':b.on?'ok':'warn')}
+      ${chip('Im Trend',list.length?`${nOn} / ${list.length}`:'–',nOn>=3?'ok':nOn>=1?'warn':'na')}
+      ${chip('Fear&amp;Greed',f==null?'k. A.':f,fs)}
+      ${chip('Letzter Schluss',day?fD(day):'–','na')}
+    </div></div>`;
+  tick();
+}
+function renderTrendSummary(){
+  const el=$('summary'),list=COINS.map(c=>TRES[c.sym]).filter(r=>r&&!r.err);
+  if(!list.length){el.innerHTML='';return;}
+  const acts=list.map(r=>({r,a:trendAction(r)})),buys=acts.filter(x=>x.a.k==='buy'),sells=acts.filter(x=>x.a.k==='sell'),late=acts.filter(x=>x.a.k==='late'),holds=acts.filter(x=>x.a.k==='hold');
+  let cls,title,sub=[];
+  if(buys.length||sells.length){
+    cls=buys.length?'sum-buy':'sum-watch';
+    title='Heute zu tun: '+[...sells.map(x=>`VERKAUFEN ${x.r.coin.short}`),...buys.map(x=>`KAUFEN ${x.r.coin.short} (${nf(x.r.size,0)} USDC)`)].join(' · ');
+  }else{cls='sum-no';title=late.length?'Kein neues Signal heute':'Heute nichts zu tun';}
+  if(holds.length)sub.push(`Halten: ${holds.map(x=>x.r.coin.short).join(', ')}`);
+  if(late.length)sub.push(`Im Trend ohne Position: ${late.map(x=>x.r.coin.short).join(', ')} (Einstieg nach Regel möglich)`);
+  sub.push('Signale gelten ab Tagesschluss (02:00 Uhr Sommerzeit / 01:00 Uhr Winterzeit) – handeln am Morgen per Market-Order. „Ich halte“ in der Karte setzen, dann passt die App die Hinweise an.');
+  el.innerHTML=`<div class="summary ${cls}"><div class="sum-title">${esc(title)}</div><div class="sum-sub">${esc(sub.join(' · '))}</div></div>`;
+}
+function trendCardHTML(r){
+  const c=r.coin;
+  if(r.err)return`<div class="card"><div class="card-main"><div class="coin"><div class="icon" style="background:${c.color}">${c.short}</div><div><div class="cname">${c.name}</div><div class="small r">${esc(r.err)}</div></div></div></div></div>`;
+  const [lab,cls]=TST[r.status],a=trendAction(r),h=holding(c.sym),flipOk=isFinite(r.flip)&&r.flip>0,dist=flipOk?(r.flip/r.cur-1)*100:null;
+  const flipTxt=!flipOk?'Kipp-Kurs nicht bestimmbar.':r.on?`Ein einzelner Tagesschluss unter ${fp(r.flip)} (${sg(dist,1)} %) würde das Signal sofort kippen – meist kippt es erst nach mehreren schwächeren Tagen; die App zeigt es dir am Morgen.`:`Ein einzelner Tagesschluss über ${fp(r.flip)} (${sg(dist,1)} %) würde sofort ein Kaufsignal geben – meist kommt es erst nach mehreren stärkeren Tagen.`;
+  const tiles=[
+    {k:'Signal seit',v:fD(r.actDay),s:'na'},
+    {k:'seitdem',v:sg(r.chgSince,1)+' %',s:r.on?(r.chgSince>=0?'ok':'warn'):'na'},
+    {k:'Größe',v:nf(r.size,0)+' $',s:r.f<1?'warn':'ok'},
+    {k:'Kipp (1 Tag)',v:flipOk?fp(r.flip):'–',s:'na'}];
+  return`<div class="card ${a.k==='buy'?'v-buy':''}" id="tcard-${c.sym}">
+   <div class="card-main">
+    <div class="row" style="align-items:flex-start">
+     <div class="coin"><div class="icon" style="background:${c.color}">${c.short}</div>
+      <div><div class="cname">${c.name}</div><div><span class="cprice num">${fp(r.cur)}</span></div></div></div>
+     <div style="text-align:right"><span class="badge ${cls}">${lab}</span><div class="qline">EMA20 ${r.on?'über':'unter'} EMA50 (${sg(r.spread,1)} %)</div></div>
+    </div>
+    <div class="reason">${esc(a.t)}</div>
+    <div class="tiles">${tiles.map(x=>`<div class="tile st-${x.s}"><div class="k">${x.k}</div><div class="v">${x.v}</div></div>`).join('')}</div>
+    <canvas class="chart" id="tcv-${c.sym}" style="height:120px"></canvas>
+    <div class="tiny muted" style="margin-top:4px;line-height:1.5">150 Tage · Schlusskurs schwarz · EMA20 blau · EMA50 orange · ${r.src==='bn'?'Binance '+esc(r.bsym):'CryptoCompare (USD)'}</div>
+    <div class="tiny muted" style="margin-top:6px;line-height:1.5">${esc(flipTxt)} Schwankung ${nf(r.vol*100,0)} % pro Jahr → ${CFG.volBrake?`Bremse: ${nf(r.f*100,0)} % der Basisgröße ${nf(CFG.posSize,0)} USDC`:'Bremse aus: volle Basisgröße'}.</div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;font-weight:800"><input type="checkbox" ${h?'checked':''} onchange="toggleHold('${c.sym}',this.checked)" style="width:20px;height:20px"> Ich halte ${c.short}${h&&HOLD[c.sym].since?` <span class="tiny muted" style="font-weight:600">(seit ${fD(HOLD[c.sym].since)})</span>`:''}</label>
+   </div>
+  </div>`;
+}
+function renderTrendCards(){
+  const cont=$('cards'),list=COINS.map(c=>TRES[c.sym]||{coin:c,err:'Keine Daten'});
+  if(list.every(r=>r.err)){cont.innerHTML=`<div class="panel" style="text-align:center"><div style="font-size:22px">⚠️</div><b class="r">Keine Marktdaten</b><div class="small muted" style="margin-top:6px;line-height:1.5">Binance und CryptoCompare nicht erreichbar. Später „↺ UPDATE“ tippen.</div></div>`;return;}
+  const rank=r=>r.err?9:(trendAction(r).k==='buy'||trendAction(r).k==='sell'?0:1)*10+TORD[r.status];
+  list.sort((a,b)=>rank(a)-rank(b));
+  cont.innerHTML=list.map(trendCardHTML).join('');
+  requestAnimationFrame(drawTrendCharts);
+}
+function drawTrendCharts(){for(const c of COINS){const r=TRES[c.sym];if(r&&!r.err)drawTrendChart(r);}}
+function drawTrendChart(r){
+  const cv=$('tcv-'+r.coin.sym);if(!cv||!cv.getContext)return;const g=cv.getContext('2d');if(!g)return;
+  const W=Math.max(200,cv.getBoundingClientRect().width||300),H=120,dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const n=r.c.length,N=Math.min(150,n),i0=n-N,padR=48;let lo=Infinity,hi=-Infinity;
+  for(let i=i0;i<n;i++){lo=Math.min(lo,r.c[i],r.e20[i],r.e50[i]);hi=Math.max(hi,r.c[i],r.e20[i],r.e50[i]);}
+  const pad=(hi-lo)*0.06||1;lo-=pad;hi+=pad;
+  const y=v=>8+(hi-v)/(hi-lo)*(H-14),x=i=>2+(i-i0)/(N-1)*(W-padR-6);
+  const line=(a,col,w)=>{g.strokeStyle=col;g.lineWidth=w;g.beginPath();for(let i=i0;i<n;i++){if(i===i0)g.moveTo(x(i),y(a[i]));else g.lineTo(x(i),y(a[i]));}g.stroke();};
+  for(let i=i0+1;i<n;i++){const on=r.e20[i]>r.e50[i];if(on){g.fillStyle='rgba(10,143,90,.07)';g.fillRect(x(i-1),0,x(i)-x(i-1)+0.5,H);}}
+  line(r.c,'#151a2d',1.3);line(r.e20,'#2f55d4',1.4);line(r.e50,'#e08a00',1.4);
+  const yy=y(r.c[n-1]);g.fillStyle='#151a2d';g.fillRect(W-padR+1,yy-7,padR-2,14);g.fillStyle='#fff';g.font='bold 9px ui-monospace,monospace';g.textBaseline='middle';g.fillText(fp(r.c[n-1]),W-padR+3,yy);
+}
+/* Hinweis bei neuem Signal (neuer Tagesschluss) */
+function notifyTrend(){
+  const list=COINS.map(c=>TRES[c.sym]).filter(r=>r&&!r.err);if(!list.length)return;
+  const key=list[0].day+'|'+list.map(r=>r.coin.short+':'+r.status).join(',');
+  if(TPREV&&TPREV!==key&&+TPREV.split('|')[0]!==list[0].day){
+    const fresh=list.filter(r=>r.status==='BUY'||r.status==='SELL');
+    if(fresh.length){const msg='Neues Trendsignal: '+fresh.map(r=>`${r.status==='BUY'?'KAUFEN':'VERKAUFEN'} ${r.coin.short}`).join(' · ');toast('🔔 '+msg,7000);
+      try{if(navigator.vibrate)navigator.vibrate([150,80,150]);}catch(e){}
+      try{if('Notification' in window&&Notification.permission==='granted')new Notification('Crypto Analyzer',{body:msg});}catch(e){}}
+  }
+  TPREV=key;lsSet('ca_trend_prev',key);
+}
+
+/* ── Trend-Backtest: USDT-Tageskerzen seit Handelsbeginn (Kurse ≈ USDC), Dans 5 Coins, gegen Buy & Hold ── */
+async function loadLongDaily(syms,out,label){
+  const now=Date.now(),trim=s=>{let k=s.T.length;while(k>0&&s.T[k-1]>now)k--;if(k<s.T.length)for(const f of FIELDS)s[f]=s[f].slice(0,k);return s;};
+  const series={},errors={};
+  for(let i=0;i<syms.length;i++){
+    const sym=syms[i],k=sym.replace('USDT',''),c=LONG_CACHE[sym];
+    let got=c&&Date.now()-c.ts<30*60e3?c.d1:null,err=null;
+    for(let a=0;!got&&a<3;a++){
+      out.innerHTML=`<div class="panel loading">⟳ ${label} · ${k} (${i+1}/${syms.length})${a?` · Versuch ${a+1}`:''} …</div>`;
+      try{got=trim(await bnPaged(sym,'1d',4000));LONG_CACHE[sym]={d1:got,ts:Date.now()};}
+      catch(e){err=e.message||String(e);if(/HTTP 400/.test(err))break;await new Promise(r=>setTimeout(r,1500*(a+1)));}
+    }
+    if(got)series[sym]=got;else errors[sym]=err||'unbekannt';
+  }
+  return{series,errors};
+}
+async function runTrendBacktest(){
+  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}
+  btBusy=true;const out=$('btOut'),btn=$('btBtn');btn.disabled=true;btn.textContent='⟳ …';
+  out.innerHTML='<div class="panel loading">⟳ Backtest startet …</div>';showOut(out);
+  let lock=null;try{if(navigator.wakeLock&&navigator.wakeLock.request)lock=await navigator.wakeLock.request('screen');}catch(e){lock=null;}
+  try{
+    const syms=COINS.map(c=>c.alt),{series,errors}=await loadLongDaily(syms,out,'Lade Tageskerzen');
+    const miss=Object.keys(errors);
+    if(miss.length)throw new Error(`Keine Daten für ${miss.map(s=>s.replace('USDT','')).join(', ')} (${errors[miss[0]]}) – Binance nicht erreichbar? Später erneut versuchen, Bildschirm anlassen.`);
+    out.innerHTML='<div class="panel loading">⟳ Rechne Trendfolge …</div>';await paint();
+    const opt={cost:CFG.feePct/100+TR.slip,target:CFG.volBrake?CFG.volTarget/100:null},t0=performance.now();
+    const res=trendBacktestAll(series,opt);
+    renderTrendBT(res,opt,Math.round(performance.now()-t0));
+  }catch(e){console.error(e);out.innerHTML=`<div class="panel"><b class="r">⚠️ Backtest fehlgeschlagen</b><div class="small muted" style="margin-top:4px">${esc(e.message)}</div></div>`;}
+  finally{try{if(lock)lock.release();}catch(e){}btBusy=false;btn.disabled=false;btn.textContent='▶ START';}
+}
+function renderTrendBT(R,opt,ms){
+  const P=R.pst,B=R.pbst,x=v=>'×'+nf(v,2),pc=v=>sg(v,0)+' %',short=s=>s.replace('USDT','');
+  let vc,vt;
+  if(P.factor>B.factor&&P.mdd>B.mdd){vc='ok';vt=`Trendfolge schlägt Buy & Hold: mehr Ertrag (${x(P.factor)} statt ${x(B.factor)}) und kleinerer größter Rückgang (${pc(P.mdd)} statt ${pc(B.mdd)}).`;}
+  else if(P.mdd>B.mdd){vc='warn';vt=`Kleinerer Rückgang als Buy & Hold (${pc(P.mdd)} statt ${pc(B.mdd)}), aber weniger Ertrag (${x(P.factor)} statt ${x(B.factor)}).`;}
+  else{vc='fail';vt=`Kein Vorteil gegenüber Buy & Hold in diesem Zeitraum (${x(P.factor)} vs. ${x(B.factor)}, Rückgang ${pc(P.mdd)} vs. ${pc(B.mdd)}).`;}
+  const brake=opt.target==null?'ohne Bremse':`Bremse ${nf(opt.target*100,0)} %`;
+  const yrs=R.pyr.map((p,i)=>({y:p.y,t:p.ret,b:R.byr[i]?R.byr[i].ret:null,ytd:p.ytd}));
+  const last=R.trades.slice(-12).reverse();
+  $('btOut').innerHTML=`
+   <div class="panel"><div class="lbl">Ergebnis · Trendfolge 20/50 Tage · ${brake}</div>
+    <div class="chk ${vc}" style="margin-bottom:8px"><span>${ICO[vc]}</span><span>${vt}</span></div>
+    <div class="kpis">
+     ${kpi(x(P.factor),'Trend · Faktor',P.factor>=1?'g':'r')}${kpi(x(B.factor),'Buy &amp; Hold')}${kpi(sg(P.cagr,0)+' %','Trend · pro Jahr',P.cagr>=0?'g':'r')}
+     ${kpi(pc(P.mdd),'Trend · max. Rückgang','r')}${kpi(pc(B.mdd),'B&amp;H · max. Rückgang','r')}${kpi(nf(R.perYear,1),'Trades / Jahr')}
+    </div>
+    <canvas id="eqCv" class="chart" style="height:150px"></canvas>
+    <div class="tiny muted" style="margin-top:4px;line-height:1.5"><b style="color:#2f55d4">Trend</b> · <b style="color:#8a91a8">Buy &amp; Hold</b> · logarithmisch · ${new Date(R.start).toLocaleDateString('de-DE')} – ${new Date(R.days[R.days.length-1]).toLocaleDateString('de-DE')} (${nf(P.yrs,1)} Jahre) · 5 Coins gleich gewichtet · ×2 = Kapital verdoppelt · ${ms} ms</div>
+   </div>
+   <div class="panel"><div class="lbl">Jahr für Jahr</div>
+    <div class="twrap"><table class="t"><tr><th>Jahr</th><th>Trend</th><th>Buy &amp; Hold</th></tr>
+    ${yrs.map(r=>`<tr><td>${r.y}${r.ytd?' (bis heute)':''}</td><td class="${r.t>=0?'g':'r'}" style="white-space:nowrap">${pc(r.t)}</td><td class="${r.b>=0?'g':'r'}" style="white-space:nowrap">${r.b==null?'–':pc(r.b)}</td></tr>`).join('')}</table></div>
+    <div class="tiny muted" style="margin-top:6px;line-height:1.5">Trendfolge verliert in Bärenjahren deutlich weniger, bleibt in starken Bullenjahren aber hinter Buy &amp; Hold – sie steigt erst ein, wenn der Trend steht.</div>
+   </div>
+   <div class="panel"><div class="lbl">Je Coin (eigener Zeitraum ab Handelsbeginn + 200 Tage)</div>
+    <div class="twrap"><table class="t"><tr><th></th><th>ab</th><th>Trend</th><th>B&amp;H</th><th>Rückg. T</th><th>Rückg. B&amp;H</th><th>Trades</th></tr>
+    ${R.coins.map(c=>`<tr><td>${short(c.sym)}</td><td style="white-space:nowrap">${fD(c.first)}</td><td class="${c.st.factor>=1?'g':'r'}">${x(c.st.factor)}</td><td>${x(c.bst.factor)}</td><td class="r" style="white-space:nowrap">${pc(c.st.mdd)}</td><td class="r" style="white-space:nowrap">${pc(c.bst.mdd)}</td><td>${c.A.trades.length}</td></tr>`).join('')}</table></div>
+   </div>
+   <div class="panel"><div class="lbl">Letzte Trades</div>
+    ${last.map(t=>`<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line)"><div><b>${short(t.sym)}</b> <span class="tiny muted">${fD(t.t)} → ${t.open?'offen':fD(t.tOut)} · Größe ${nf(t.f*100,0)} %</span><div class="tiny muted">${fp(t.px)} → ${fp(t.pxOut)}</div></div><b class="${t.ret>=0?'g':'r'} num">${sg(t.ret*100,1)} %</b></div>`).join('')}
+   </div>
+   <div class="panel tiny muted" style="line-height:1.6">Datenbasis: Binance-Tageskerzen der USDT-Paare seit Handelsbeginn (Kurse praktisch gleich wie USDC). Kauf/Verkauf zum Open des Tages nach dem Signal · Kosten ${nf(opt.cost*100,2)} % je Seite (Gebühr laut ⚙️ + 0,05 % Schlupf) · Größe beim Einstieg mit ${opt.target==null?'voller Position':`Volatilitäts-Bremse (Ziel ${nf(opt.target*100,0)} % Jahresschwankung)`} · Zinseszins je Coin. Vorbehalte: Getestet nur mit Coins, die es heute noch gibt (pleite gegangene fehlen); Vergangenheit ist keine Garantie; keine Anlageberatung.</div>`;
+  requestAnimationFrame(()=>drawLogLines($('eqCv'),[R.pb,R.pv],['#8a91a8','#2f55d4']));
+}
+function drawLogLines(cv,arrs,cols){
+  if(!cv||!cv.getContext)return;const g=cv.getContext('2d');if(!g)return;
+  const W=Math.max(200,cv.getBoundingClientRect().width||300),H=150,dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const L=arrs.map(a=>a.map(v=>Math.log(Math.max(v,1e-6))));let lo=Infinity,hi=-Infinity;for(const a of L)for(const v of a){lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  lo=Math.min(lo,0);hi=Math.max(hi,0);const pad=(hi-lo)*0.06||0.1;lo-=pad;hi+=pad;
+  const n=arrs[0].length,y=v=>6+(hi-v)/(hi-lo)*(H-12),x=i=>4+i/Math.max(1,n-1)*(W-8);
+  g.strokeStyle='rgba(20,30,60,.25)';g.setLineDash([3,3]);g.beginPath();g.moveTo(0,y(0));g.lineTo(W,y(0));g.stroke();g.setLineDash([]);
+  L.forEach((a,j)=>{g.strokeStyle=cols[j];g.lineWidth=j===L.length-1?2:1.4;g.beginPath();a.forEach((v,i)=>{if(i)g.lineTo(x(i),y(v));else g.moveTo(x(i),y(v));});g.stroke();});
+}
+
 /* ════════════════ START ════════════════ */
 function showPage(p){
   document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));
   document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page===p));
   if(p==='news')fetchNews(false);
   if(p==='journal')renderJournal();
-  if(p==='signals')requestAnimationFrame(()=>COINS.forEach(c=>{const r=RES[c.sym];if(r&&!r.err)drawChart(r);}));
+  if(p==='signals')requestAnimationFrame(drawTrendCharts);
   window.scrollTo(0,0);
 }
 (function init(){
@@ -1639,13 +1896,11 @@ function showPage(p){
   $('updateBtn').addEventListener('click',()=>fetchAll(false));
   $('cfgBtn').addEventListener('click',()=>{const p=$('cfgPanel'),show=p.style.display==='none';if(show)renderCfg();p.style.display=show?'block':'none';});
   $('newsBtn').addEventListener('click',()=>fetchNews(true));
-  $('btBtn').addEventListener('click',runBacktest);
-  $('boBtn').addEventListener('click',runBreakoutCheck);
+  $('btBtn').addEventListener('click',runTrendBacktest);
   $('exBtn').addEventListener('click',runExport);
   $('exLBtn').addEventListener('click',runLongExport);
   $('jAdd').addEventListener('click',addTrade);
   $('jCoin').innerHTML=COINS.map(c=>`<option value="${c.sym}">${c.short}</option>`).join('');
-  $('btScope').innerHTML+=COINS.map(c=>`<option value="${c.sym}">${c.name} (${c.short})</option>`).join('');
   $('jSize').placeholder=String(CFG.posSize);
   renderJournal();
   fetchAll(true).then(()=>fetchNews(false));
@@ -1656,7 +1911,7 @@ function showPage(p){
     if((now>=hs+20e3&&lastFetch<hs+15e3)||now-lastFetch>300e3)fetchAll(false);   // 20 s nach Kerzenschluss + alle 5 min
   },1000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-lastFetch>120e3)fetchAll(false);});
-  window.addEventListener('resize',debounce(()=>COINS.forEach(c=>{const r=RES[c.sym];if(r&&!r.err)drawChart(r);}),200));
+  window.addEventListener('resize',debounce(drawTrendCharts,200));
 })();
 </script>
 </body>
