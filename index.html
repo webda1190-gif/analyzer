@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#f3f5fa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Crypto Analyzer Pro v15.2</title>
-<!-- v15.2 · Oktober 2026 · + Setup D (Ausbruchs-Einstieg, aus) · + Setup E (Verdichtungs-Vorwarnung, aus) · + Ausbruch-Check · Langzeit-Backtest bis ~3 Jahre · Marktumfeld, Qualitätsstufen, Stabilität · Rohdaten-Export · identische Logik live & Backtest -->
+<title>Crypto Analyzer Pro v15.3</title>
+<!-- v15.3 · Oktober 2026 · + Setup D (Ausbruchs-Einstieg, aus) · + Setup E (Verdichtungs-Vorwarnung, aus) · + Ausbruch-Check · Langzeit-Backtest bis ~3 Jahre · Marktumfeld, Qualitätsstufen, Stabilität · Rohdaten-Export + Langzeit-Export (USDT) · Datenlücken-Schnitt · identische Logik live & Backtest -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -130,7 +130,7 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
   <div class="head">
     <div>
       <div class="h-sub">Binance Spot · Long only · 1H / 4H / 1D</div>
-      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v15.2</span></div>
+      <div class="h-title">ANALYZER PRO <span style="font-size:11px;color:var(--txt3);font-weight:700">v15.3</span></div>
       <div class="h-desc" id="statusLine">Lade Marktdaten …</div>
     </div>
     <div style="display:flex;gap:6px">
@@ -182,6 +182,7 @@ table.t tr.hl td{background:var(--green-bg);font-weight:800}
     </div>
     <div class="tiny muted" style="margin-top:8px;line-height:1.5">Einstieg zum Open der Folgekerze · Gebühren je Seite laut ⚙️ · bei gleicher Kerze zählt der Stop zuerst (konservativ) · 50 % bei TP1, danach Stop auf Einstand · Zeitstop · Portfolio-Limit gleichzeitiger Positionen. News, Fear &amp; Greed und Funding sind historisch nicht enthalten. Ab ~208 Tage gibt es nur mit Binance-Daten (CryptoCompare liefert höchstens ~83 Tage). 1–3 Jahre: Laden und Rechnen dauern je nach Handy bis zu einer Minute oder mehr.</div>
     <div class="row" style="align-items:flex-start;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div><div class="lbl" style="margin:0">Rohdaten exportieren</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Speichert die ~3 Jahre Kerzen (1H, 4H, 1D) der 5 Coins als Datei (ca. 2–3 MB), damit sie außerhalb der App ausgewertet werden können. Nur öffentliche Kursdaten.</div></div><button class="btn" id="exBtn">💾 EXPORT</button></div>
+    <div class="row" style="align-items:flex-start;gap:10px;margin-top:10px"><div><div class="lbl" style="margin:0">Langzeit-Export (USDT, seit 2017)</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Tages- und 4-Stunden-Kerzen seit Handelsbeginn für 11 große Coins (BTC, ETH, BNB, SOL, LINK, XRP, ADA, DOGE, LTC, AVAX, DOT) – für Tests über mehrere Bärenmärkte. Ca. 2 MB, 1–2 Minuten.</div></div><button class="btn" id="exLBtn">💾 LANGZEIT</button></div>
   </div>
   <div class="panel" id="boPanel">
     <div class="row" style="align-items:flex-start;gap:10px"><div><div class="lbl" style="margin:0">Ausbruch-Check</div><div class="tiny muted" style="line-height:1.5;margin-top:3px">Zählt, wie viele Ausbrüche die App erfasst und wie viele sie verpasst – mit denselben Funktionen wie die Live-Signale, auf den echten Kursen. Umfang und Zeitraum von oben.</div></div><button class="btn" id="boBtn">▶ PRÜFEN</button></div>
@@ -367,7 +368,7 @@ function buildTF(s,L,R){
 }
 function buildCtx(raw,btc){
   const h1=buildTF(raw.h1,3,3),h4=buildTF(raw.h4,2,2),d1=buildTF(raw.d1,2,2);addBO(h1);
-  const ctx={h1,h4,d1,a4:alignIdx(h1,h4),aD:alignIdx(h1,d1),src:raw.src,bsym:raw.bsym};
+  const ctx={h1,h4,d1,a4:alignIdx(h1,h4),aD:alignIdx(h1,d1),src:raw.src,bsym:raw.bsym,cut:raw.cut||null};
   if(btc){ctx.btc4=btc.h4;ctx.aB=alignIdx(h1,btc.h4);}
   return ctx;
 }
@@ -1157,11 +1158,11 @@ async function loadHistory(coin,pages){
   if((!d||d.src==='bn')&&Date.now()>bnDownUntil){
     try{
       const [h1,h4,d1]=await Promise.all([bnPaged(bsym,'1h',pages*1000),bnPaged(bsym,'4h',pages*250+320),pages<=5?bnKlines(bsym,'1d',500):bnPaged(bsym,'1d',Math.ceil(pages*1000/24)+300)]);
-      return{h1:trim(h1),h4:trim(h4),d1:trim(d1),src:'bn',bsym};
+      return cleanGaps({h1:trim(h1),h4:trim(h4),d1:trim(d1),src:'bn',bsym});
     }catch(e){}
   }
   const [h1,h4,d1]=await Promise.all([ccKlines(coin.cc,'1h',Math.min(2000,pages*1000)),ccKlines(coin.cc,'4h',Math.min(2000,pages*250+320)),ccKlines(coin.cc,'1d',500)]);
-  return{h1:trim(h1),h4:trim(h4),d1:trim(d1),src:'cc',bsym:coin.cc+'/USD'};
+  return cleanGaps({h1:trim(h1),h4:trim(h4),d1:trim(d1),src:'cc',bsym:coin.cc+'/USD'});
 }
 function simulate(X,sig,th,coin){
   const f=CFG.feePct/100,out=[];let e=WARM;
@@ -1295,6 +1296,15 @@ async function getRaws(coins,pages,out){
   finally{HPROG=null;}
   BTCACHE={key,raws,ts:Date.now()};return raws;
 }
+
+/* Lange Datenlücken (z. B. Handelspause eines USDC-Paars 2022–2024) abschneiden: nur der jüngste zusammenhängende Teil zählt.
+   Sonst hängt die Historie Kerzen von 2022 direkt an 2024 (Preissprung, falsche Indikatoren, Trades in der falschen Zeit). */
+function cutAtGap(s,maxGap){let k=0;for(let i=1;i<s.t.length;i++)if(s.t[i]-s.t[i-1]>maxGap)k=i;if(k>0)for(const f of FIELDS)s[f]=s[f].slice(k);return k;}
+function cleanGaps(r){
+  const W=7*864e5,c1=cutAtGap(r.h1,W),c4=cutAtGap(r.h4,W),cD=cutAtGap(r.d1,W);
+  if(c1||c4||cD)r.cut={h1:c1,h4:c4,d1:cD,from:r.h1.t[0]};
+  return r;
+}
 /* ── Anzeige: Ergebnis direkt unter die Knöpfe holen und dorthin scrollen
    (sonst „passiert nichts“, wenn die andere Ausgabe lang ist und das Ergebnis weit unten landet) ── */
 function showOut(el){
@@ -1310,7 +1320,7 @@ function marketCtx(runs){
   return runs.map(R=>{
     const X=R.ctx.h1,h4=R.ctx.h4,a4=R.ctx.a4;let b=0,r=0,nn=0,n=0;
     for(let e=WARM;e<X.n;e++){const s=reg4At(h4,a4[e]).state;if(s==='bull')b++;else if(s==='bear')r++;else if(s==='neutral')nn++;else continue;n++;}
-    return{coin:R.coin.short,chg:(X.c[X.n-1]/X.c[WARM]-1)*100,bull:n?b/n:0,neu:n?nn/n:0,bear:n?r/n:0,gaps:gapInfo(X,IV['1h'])};
+    return{coin:R.coin.short,chg:(X.c[X.n-1]/X.c[WARM]-1)*100,bull:n?b/n:0,neu:n?nn/n:0,bear:n?r/n:0,gaps:gapInfo(X,IV['1h']),cutFrom:R.ctx.cut?R.ctx.cut.from:null};
   });
 }
 function mktHTML(m){
@@ -1321,7 +1331,7 @@ function mktHTML(m){
    ${m.map(x=>`<tr><td>${x.coin}</td><td class="${x.chg>=0?'g':'r'}" style="white-space:nowrap">${sg(x.chg,0)} %</td><td>${P(x.bull)}</td><td>${P(x.neu)}</td><td>${P(x.bear)}</td></tr>`).join('')}
    ${m.length>1?`<tr><td><b>Ø</b></td><td class="${ca>=0?'g':'r'}" style="white-space:nowrap"><b>${sg(ca,0)} %</b></td><td><b>${P(avg('bull'))}</b></td><td><b>${P(avg('neu'))}</b></td><td><b>${P(avg('bear'))}</b></td></tr>`:''}
    </table></div>
-   <div class="tiny muted" style="margin-top:6px;line-height:1.5">Kurs = Veränderung vom Start bis zum Ende des Testzeitraums (Buy &amp; Hold). 4H-Trend = Anteil der Zeit mit Kurs &gt; EMA50 &gt; EMA200 (bullisch) bzw. umgekehrt (bärisch), der Rest neutral. Eine reine Long-Strategie braucht steigende Märkte – in seitwärts oder abwärts laufenden Phasen verliert sie meist. Das Ergebnis gilt nur für dieses Umfeld.${m.some(x=>x.gaps>0)?` Fehlende 1H-Kerzen (Stunden ohne Handel oder Datenlücke): ${m.filter(x=>x.gaps>0).map(x=>x.coin+' '+nf(x.gaps,0)).join(' · ')}.`:''}</div></div>`;
+   <div class="tiny muted" style="margin-top:6px;line-height:1.5">Kurs = Veränderung vom Start bis zum Ende des Testzeitraums (Buy &amp; Hold). 4H-Trend = Anteil der Zeit mit Kurs &gt; EMA50 &gt; EMA200 (bullisch) bzw. umgekehrt (bärisch), der Rest neutral. Eine reine Long-Strategie braucht steigende Märkte – in seitwärts oder abwärts laufenden Phasen verliert sie meist. Das Ergebnis gilt nur für dieses Umfeld.${m.some(x=>x.cutFrom)?` Wegen einer Handelspause des USDC-Paars zählen nur Daten ab: ${m.filter(x=>x.cutFrom).map(x=>x.coin+' '+new Date(x.cutFrom).toLocaleDateString('de-DE')).join(' · ')} (Kurs-Spalte ab diesem Start).`:''}${m.some(x=>x.gaps>0)?` Fehlende 1H-Kerzen (Stunden ohne Handel oder Datenlücke): ${m.filter(x=>x.gaps>0).map(x=>x.coin+' '+nf(x.gaps,0)).join(' · ')}.`:''}</div></div>`;
 }
 /* ── Trennt die Qualitätsnote Gewinner von Verlierern? Alle Signale ab Q 40 (ohne Portfolio-Limit), in Stufen ── */
 function qBuckets(runs,weeks){
@@ -1366,6 +1376,11 @@ function saveExport(){
   const {blob,name}=EXPORT_FILE,a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();
   setTimeout(()=>{try{URL.revokeObjectURL(a.href);}catch(e){}a.remove();},15000);toast('Gespeichert: '+name);
 }
+const packS=s=>({t:s.t,o:s.o,h:s.h,l:s.l,c:s.c,v:s.v});
+async function gzBlob(json){
+  if(typeof CompressionStream==='function'){try{return{blob:await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))).blob(),ext:'.json.gz'};}catch(e){}}
+  return{blob:new Blob([json],{type:'application/json'}),ext:'.json'};
+}
 function gapInfo(s,iv){let g=0;for(let i=1;i<s.t.length;i++){const d=s.t[i]-s.t[i-1];if(d>iv)g+=Math.round(d/iv)-1;}return g;}
 async function runExport(){
   if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}
@@ -1374,19 +1389,16 @@ async function runExport(){
   try{
     const raws=await getRaws(COINS,27,out);
     out.innerHTML='<div class="panel loading">⟳ Packe Datei …</div>';await paint();
-    const pk=s=>({t:s.t,o:s.o,h:s.h,l:s.l,c:s.c,v:s.v}),doc={format:'krypto-daten-v1',app:'v15.2',exportiert:new Date().toISOString(),coins:{}},rows=[];
+    const pk=packS,doc={format:'krypto-daten-v1',app:'v15.3',exportiert:new Date().toISOString(),coins:{}},rows=[];
     for(const c of COINS){
       const r=raws[c.sym];doc.coins[c.sym]={src:r.src,bsym:r.bsym,h1:pk(r.h1),h4:pk(r.h4),d1:pk(r.d1)};
-      rows.push({k:c.short,n:r.h1.t.length,from:r.h1.t[0],gaps:gapInfo(r.h1,IV['1h']),src:r.src,bsym:r.bsym});
+      rows.push({k:c.short,n:r.h1.t.length,from:r.h1.t[0],gaps:gapInfo(r.h1,IV['1h']),src:r.src,bsym:r.bsym,cut:r.cut});
     }
-    const json=JSON.stringify(doc);let blob=null,name='krypto-daten-'+new Date().toISOString().slice(0,10);
-    if(typeof CompressionStream==='function'){
-      try{blob=await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))).blob();name+='.json.gz';}catch(e){blob=null;}
-    }
-    if(!blob){blob=new Blob([json],{type:'application/json'});name+='.json';}
+    const gz=await gzBlob(JSON.stringify(doc)),blob=gz.blob,name='krypto-daten-'+new Date().toISOString().slice(0,10)+gz.ext;
     EXPORT_FILE={blob,name};
     const fmtD=ts=>new Date(ts).toLocaleDateString('de-DE'),mb=nf(blob.size/1048576,1),cc=rows.some(r=>r.src!=='bn'),short=rows.some(r=>r.n<26000);
-    const warn=cc?'Mindestens ein Coin kam nicht von Binance (nur ~83 Tage verfügbar) – für die Auswertung zu wenig. Später erneut versuchen.':short?'Weniger als 3 Jahre Kerzen geladen – bei einzelnen Coins ist die Historie kürzer (z. B. später gelistet) oder Binance war nicht durchgehend erreichbar.':'';
+    const cutTxt=rows.filter(r=>r.cut).map(r=>r.k+' ab '+fmtD(r.cut.from)).join(', ');
+    const warn=cc?'Mindestens ein Coin kam nicht von Binance (nur ~83 Tage verfügbar) – für die Auswertung zu wenig. Später erneut versuchen.':cutTxt?'Wegen einer Handelspause des USDC-Paars nur der zusammenhängende jüngste Teil: '+cutTxt+'.':short?'Weniger als 3 Jahre Kerzen geladen – bei einzelnen Coins ist die Historie kürzer (z. B. später gelistet) oder Binance war nicht durchgehend erreichbar.':'';
     out.innerHTML=`<div class="panel"><div class="lbl">Export</div>
      <div class="chk ${cc?'warn':'ok'}" style="margin-bottom:8px"><span>${cc?ICO.warn:ICO.ok}</span><span>Datei <b>${esc(name)}</b> (${mb} MB) ist fertig. Tippe auf „Datei speichern“ – sie landet im Download-Ordner des Handys. Danach hängst du sie im Chat an.</span></div>
      <button class="btn" id="exSave" style="width:100%;padding:12px;margin-bottom:8px">💾 DATEI SPEICHERN</button>
@@ -1396,6 +1408,40 @@ async function runExport(){
      <div class="tiny muted" style="margin-top:6px;line-height:1.5">Die Datei enthält nur öffentliche Kursdaten (Binance, 1H/4H/1D). „Lücken“ = Stunden ohne Kerze (kein Handel oder Datenlücke).</div></div>`;
     $('exSave').addEventListener('click',saveExport);
   }catch(e){console.error(e);out.innerHTML=`<div class="panel"><b class="r">⚠️ Export fehlgeschlagen</b><div class="small muted" style="margin-top:4px">${esc(e.message)}</div></div>`;}
+  finally{btBusy=false;btn.disabled=false;btn.textContent=old;}
+}
+
+/* ── Langzeit-Export: Tageskerzen + 4H der USDT-Paare seit Handelsbeginn (für Tests über mehrere Bärenmärkte; USDT ≈ USDC im Kurs) ── */
+const LONG_SYMS=['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','LINKUSDT','XRPUSDT','ADAUSDT','DOGEUSDT','LTCUSDT','AVAXUSDT','DOTUSDT'];
+async function runLongExport(){
+  if(btBusy){toast('Ein Lauf ist noch aktiv – bitte kurz warten');return;}
+  btBusy=true;const out=$('btOut'),btn=$('exLBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='⟳ …';
+  out.innerHTML='<div class="panel loading">⟳ Langzeit-Export startet …</div>';showOut(out);
+  try{
+    const now=Date.now(),trim=s=>{let k=s.T.length;while(k>0&&s.T[k-1]>now)k--;if(k<s.T.length)for(const f of FIELDS)s[f]=s[f].slice(0,k);return s;};
+    const doc={format:'krypto-lang-v1',app:'v15.3',exportiert:new Date().toISOString(),coins:{}},rows=[];
+    for(let i=0;i<LONG_SYMS.length;i++){
+      const sym=LONG_SYMS[i],k=sym.replace('USDT','');
+      out.innerHTML=`<div class="panel loading">⟳ Lade Langzeit-Historie · ${k} (${i+1}/${LONG_SYMS.length}) …</div>`;
+      try{
+        const d1=trim(await bnPaged(sym,'1d',4000)),h4=trim(await bnPaged(sym,'4h',24000));
+        doc.coins[sym]={d1:packS(d1),h4:packS(h4)};
+        rows.push({k,nD:d1.t.length,n4:h4.t.length,from:d1.t[0],gaps:gapInfo(d1,IV['1d'])});
+      }catch(e){rows.push({k,err:e.message});}
+    }
+    if(!Object.keys(doc.coins).length)throw new Error('Keine Daten von Binance erhalten – später erneut versuchen.');
+    out.innerHTML='<div class="panel loading">⟳ Packe Datei …</div>';await paint();
+    const gz=await gzBlob(JSON.stringify(doc)),name='krypto-lang-'+new Date().toISOString().slice(0,10)+gz.ext;
+    EXPORT_FILE={blob:gz.blob,name};
+    const fmtD=ts=>new Date(ts).toLocaleDateString('de-DE'),mb=nf(gz.blob.size/1048576,1),bad=rows.filter(r=>r.err);
+    out.innerHTML=`<div class="panel"><div class="lbl">Langzeit-Export</div>
+     <div class="chk ${bad.length?'warn':'ok'}" style="margin-bottom:8px"><span>${bad.length?ICO.warn:ICO.ok}</span><span>Datei <b>${esc(name)}</b> (${mb} MB) ist fertig${bad.length?` – ohne ${bad.map(r=>r.k).join(', ')} (keine Daten)`:''}. Tippe auf „Datei speichern“ und hänge sie im Chat an.</span></div>
+     <button class="btn" id="exSave" style="width:100%;padding:12px;margin-bottom:8px">💾 DATEI SPEICHERN</button>
+     <div class="twrap"><table class="t"><tr><th></th><th>Tage</th><th>4H</th><th>ab</th><th>Lücken</th></tr>
+     ${rows.map(r=>r.err?`<tr><td>${r.k}</td><td colspan="4" class="r">${esc(r.err)}</td></tr>`:`<tr><td>${r.k}</td><td>${nf(r.nD,0)}</td><td>${nf(r.n4,0)}</td><td style="white-space:nowrap">${fmtD(r.from)}</td><td>${nf(r.gaps,0)}</td></tr>`).join('')}</table></div>
+     <div class="tiny muted" style="margin-top:6px;line-height:1.5">USDT-Paare von Binance (Kurse praktisch gleich wie USDC), Tageskerzen und 4-Stunden-Kerzen seit Handelsbeginn. Nur öffentliche Kursdaten.</div></div>`;
+    $('exSave').addEventListener('click',saveExport);
+  }catch(e){console.error(e);out.innerHTML=`<div class="panel"><b class="r">⚠️ Langzeit-Export fehlgeschlagen</b><div class="small muted" style="margin-top:4px">${esc(e.message)}</div></div>`;}
   finally{btBusy=false;btn.disabled=false;btn.textContent=old;}
 }
 /* ════════════════ AUSBRUCH-CHECK ════════════════
@@ -1596,6 +1642,7 @@ function showPage(p){
   $('btBtn').addEventListener('click',runBacktest);
   $('boBtn').addEventListener('click',runBreakoutCheck);
   $('exBtn').addEventListener('click',runExport);
+  $('exLBtn').addEventListener('click',runLongExport);
   $('jAdd').addEventListener('click',addTrade);
   $('jCoin').innerHTML=COINS.map(c=>`<option value="${c.sym}">${c.short}</option>`).join('');
   $('btScope').innerHTML+=COINS.map(c=>`<option value="${c.sym}">${c.name} (${c.short})</option>`).join('');
